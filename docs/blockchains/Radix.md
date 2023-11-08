@@ -2,7 +2,7 @@
 
 This repository shows how to generate a code coverage report for WebAssembly programs written in Rust, specifically for smart contracts in blockchain protocols. As of October 18, 2023, generating such reports wasn't possible for blockchain protocols using the WebAssembly VM. This repository aims to guide protocols using the WebAssembly VM on implementing code coverage functionality. While this technique focuses on blockchain protocols, it's applicable to any project using the WASM VM.
 
-### Step 1: Adding code coverage instrumentation to WASM binary
+## 1. Adding code coverage instrumentation to WASM binary
 
 [Minicov](https://github.com/Amanieu/minicov/) provides an easy way to add LLVM instrumentation coverage to Rust projects. First, include minicov in your dependencies:
 
@@ -55,7 +55,7 @@ fn dump_coverage(&mut self, data: Vec<u8>) -> Result<(), RuntimeError> {
 }
 ```
 
-### Step 2: Automatic coverage data generation
+## 2. Automatic coverage data generation
 
 To generate coverage data, we need the VM to call `dump_coverage` post-execution. Manually adding this to every function isn't practical. Implementing this might differ based on your platform and could be challenging, especially when execution fails, e.g., due to panics.
 
@@ -123,7 +123,7 @@ fn invoke_export<'r>(
 
 After these changes and setting `COVERAGE_DIRECTORY` environmental variable, running your code will generate `.profraw` files containing coverage data.
 
-### Step 3: Parsing raw coverage data
+## 3. Parsing raw coverage data
 
 Executing your code will result in one or more `.profraw` files. Merge these into a single `.profdata` file:
 ```bash
@@ -132,7 +132,7 @@ llvm-profdata merge -sparse *.profraw -o coverage.profdata
 
 Ensure `llvm-profdata` matches your Rust version. Check your Rust version with `rustc --version --verbose` and compare the LLVM version. If they differ, [install the correct LLVM version](https://apt.llvm.org/) and adjust the command accordingly (in my case it is `llvm-profdata-17`).
 
-### Step 4: Generating the coverage report
+### 4. Generating the coverage report
 
 Now with the `coverage.profdata` we're ready to generate coverate report. First, let's try to use the following command:
 ```bash

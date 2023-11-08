@@ -2,6 +2,10 @@
 
 This guide aims to assist you in implementing code coverage for WebAssembly (WASM) programs, particularly for smart contracts within blockchain protocols. We'll break down the process into four essential steps while keeping the explanation focused on common challenges applicable to any environment.
 
+Blockchain specific instructions:
+- [NEAR Protocol](blockchains/NEAR.md)
+- [Radix](blockchains/Radix.md)
+
 ## Step 1: Adding Code Coverage Instrumentation to WASM Binary
 
 To add code coverage instrumentation to your WASM binary, you can use the `minicov` library, which facilitates LLVM instrumentation coverage for Rust projects. Here's how to do it:
