@@ -1,0 +1,25 @@
+[package]
+name = "wasmcov"
+version = "0.0.1"
+edition = "2021"
+authors = ["Noah Jelich <n.jelich@hacken.io>"]
+description = "A set of helpers for coverage of wasm modules"
+license = "MIT"
+
+[lib]
+name = "wasmcov"
+path = "src/lib.rs"
+proc-macro = true
+
+[[bin]]
+name = "wasmcov"
+path = "src/bin.rs"
+
+[dependencies]
+syn = "2.0.38"
+quote = "1.0.33"
+near-sdk = "4.1.1"
+serde_json = { version = "1.0", features = ["arbitrary_precision"] }
+
+minicov = "0.3"
+
