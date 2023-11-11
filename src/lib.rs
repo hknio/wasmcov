@@ -66,3 +66,12 @@ pub fn write_profraw(data: Vec<u8>) {
     let profraw_path = profraw_dir.join(format!("{}.profraw", id));
     fs::write(profraw_path, data).unwrap();
 }
+
+// This function is called on NEAR call or view logs, which can be fetched using the logs()
+// function on either an ExecutionResult or similar objects produced by near-workspaces/src/result.rs
+// This call needs to be added to every function call definitiion.
+#[cfg(feature = "near")]
+pub fn near_coverage(&logs: Vec<&str>) {
+    let coverage: Vec<u8> = near_sdk::base64::decode(&logs.last().unwrap()).unwrap();
+    write_profraw(coverage);
+}

@@ -19,7 +19,7 @@ overflow-checks = true
 
 ## 2. Set Up Custom NEAR Sandbox Local Network
 
-Before running tests with coverage, you need to set up a custom NEAR Protocol sandbox with modified parameters to allow for higher gas limits. Use the following commands:
+Before running tests with coverage, you need to set up a custom NEAR Protocol sandbox with modified parameters to allow for higher gas limits. Use the following commands. You can find the `neard` binary [in this repo](../../bin/).
 
 Initialize the sandbox:
 
@@ -50,7 +50,7 @@ To work with coverage, you need to patch the NEAR-SDK with a modified `near_bind
 
 ```toml
 [profile.coverage.patch.crates-io]
-near-sdk = { git = "https://github.com/njelich/near-sdk-rs", rev = "468b5e585dc0ce0cee3d56f446c4a6054fb08f00" }
+near-sdk = { git = "https://github.com/hknio/near-sdk-rs", rev = "468b5e585dc0ce0cee3d56f446c4a6054fb08f00" }
 ```
 
 ## 5. Collect Coverage Data in Tests
@@ -58,9 +58,14 @@ near-sdk = { git = "https://github.com/njelich/near-sdk-rs", rev = "468b5e585dc0
 Ensure that your tests capture coverage data. You can extract coverage information from the last log, which contains data on every function call, and write it to a `.profraw` file. Use the following code snippet:
 
 ```rust
-let coverage = &context.contract.method_call().await?;
-let coverage: Vec<u8> = near_sdk::base64::decode(&coverage.logs.last().unwrap()).unwrap();
-std::fs::write(format!("../profraw/{random_file_name}.profraw"), coverage).unwrap();
+use wasmcov::{near_coverage};
+
+fn main() {
+    let contract: near_workspaces::Contract = near_workspaces::Contract::new();
+    let result = contract.view("get_coverage").await?;
+    ...
+    near_coverage(&result.logs());
+}
 ```
 
 ## 6. Build Code with Coverage Instrumentation
@@ -75,12 +80,12 @@ rustup target add wasm32-unknown-unknown
 
 cargo build -p contract --target wasm32-unknown-unknown --profile=coverage
 
-cp ./target/wasm32-unknown-unknown/coverage/contract.wasm res/contract_coverage.wasm
-cp ./target/wasm32-unknown-unknown/coverage/deps/contract.ll res/contract_coverage.ll
+cp ./target/wasm32-unknown-unknown/coverage/contract.wasm $WASMCOV_DIR/contract_coverage.wasm
+cp ./target/wasm32-unknown-unknown/coverage/deps/contract.ll $WASMCOV_DIR/contract_coverage.ll
 
-perl -i -p0e 's/(^define[^\n]*\n).*?^}\s*$/$1start:\n  unreachable\n}\n/gms' res/contract_coverage.ll
+perl -i -p0e 's/(^define[^\n]*\n).*?^}\s*$/$1start:\n  unreachable\n}\n/gms' $WASMCOV_DIR/contract_coverage.ll
 
-clang-17 res/contract_coverage.ll -o res/contract_coverage.o -Wno-override-module -c
+clang-17 $WASMCOV_DIR/contract_coverage.ll -o $WASMCOV_DIR/contract_coverage.o -Wno-override-module -c
 ```
 
 ## 7. Run External Tests Using contract_coverage.wasm
@@ -92,9 +97,9 @@ With your contract built for coverage, run your external tests using the `contra
 After running the tests, you need to merge the coverage data from the `.profraw` files and generate a code coverage report. Use the following commands:
 
 ```bash
-llvm-profdata merge -sparse profraw-tests/*.profraw -o output.profdata
+llvm-profdata merge -sparse $WASMCOV_DIR/profraw/*.profraw -o $WASMCOV_DIR/output.profdata
 
-llvm-cov-17 show --instr-profile=output.profdata res/contract_coverage.o --format=html -output-dir=wasmcov/
+llvm-cov-17 show --instr-profile=$WASMCOV_DIR/output.profdata $WASMCOV_DIR/contract_coverage.o --format=html -output-dir=wasmcov/report
 ```
 
 By following these steps, you can effectively use `wasmcov` to generate code coverage reports for your NEAR Protocol smart contracts. This coverage analysis can help you identify and improve the test coverage of your contracts, ensuring their reliability and correctness.
