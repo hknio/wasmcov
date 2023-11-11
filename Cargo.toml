@@ -9,11 +9,6 @@ license = "MIT"
 [lib]
 name = "wasmcov"
 path = "src/lib.rs"
-proc-macro = true
-
-[[bin]]
-name = "wasmcov"
-path = "src/bin.rs"
 
 [dependencies]
 syn = "2.0.38"

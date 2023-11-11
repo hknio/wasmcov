@@ -1,49 +1,68 @@
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, parse_quote, ImplItem, ImplItemFn, ItemImpl, Stmt};
+use std::env;
+use std::fs;
+use std::io;
+use std::io::Result;
+use std::path::Path;
+use std::path::PathBuf;
+use uuid::Uuid;
 
-#[proc_macro_attribute]
-pub fn near_bindgen(args: TokenStream, input: TokenStream) -> TokenStream {
-    let mut out = TokenStream::new();
-    let bindgen: TokenStream = quote! { #[near_sdk::near_bindgen] }.into();
-    out.extend(bindgen);
-    if cfg!(coverage) {
-        let coverage: TokenStream = quote! { #[hacken_cov::near_coverage] }.into();
-        out.extend(coverage);
-    }
-    out.extend(input);
-    out
-}
+pub fn set_wasmcov_dir(wasmcov_dir: Option<PathBuf>) {
+    // Set the directory used to store coverage data.
+    // If no directory is specified, use the default directory.
+    let default_directory = env::current_dir().unwrap().join("wasmcov");
+    let coverage_directory = wasmcov_dir.unwrap_or(default_directory);
 
-#[proc_macro_attribute]
-pub fn near_coverage(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let mut input = parse_macro_input!(item as ItemImpl);
+    // Set the directory that wasm-cov will store coverage data in.
+    env::set_var("WASMCOV_DIR", &coverage_directory);
 
-    let code_block: Vec<Stmt> = parse_quote! {
-        let mut coverage = vec![];
-        unsafe {
-            // Note that this function is not thread-safe! Use a lock if needed.
-            minicov::capture_coverage(&mut coverage).unwrap();
-        };
-        near_sdk::env::log_str();
-    };
-
-    for item in &mut input.items {
-        if let ImplItem::Fn(ImplItemFn { block, .. }) = item {
-            let temp = block.stmts.pop();
-            block.stmts.extend(code_block.clone());
-            block.stmts.push(temp.unwrap());
-        }
+    // Create the coverage directory if it does not exist.
+    // Also create bin and profraw subdirectories.
+    if !Path::new(&coverage_directory).exists() {
+        fs::create_dir_all(&coverage_directory).unwrap();
+        fs::create_dir_all(&coverage_directory.join("bin")).unwrap();
+        fs::create_dir_all(&coverage_directory.join("profraw")).unwrap();
     }
 
-    TokenStream::from(quote! { #input })
+    // Include neard binar from bin/neard and write it to WASMCOV_DIR/bin/neard
+    let neard_bin = include_bytes!("../bin/neard");
+    let neard_bin_path = coverage_directory.join("bin").join("neard");
+    fs::write(neard_bin_path, neard_bin).unwrap();
 }
 
-pub fn write_profraw(coverage) {
-    let coverage = &context.jar_contract.get_coverage().await?;
-    let coverage: Vec<u8> = near_sdk::base64::decode(&coverage.logs[0]).unwrap();
+// Get the coverage directory from the WASMCOV_DIR environment variable.
+// If that variable is not set, use the current directory.
+pub fn get_wasmcov_dir() -> Result<PathBuf> {
+    let default_directory = env::current_dir().unwrap().join("wasmcov");
+    let coverage_directory = env::var("WASMCOV_DIR")
+        .map(PathBuf::from)
+        .unwrap_or(default_directory);
 
+    if !Path::new(&coverage_directory).exists() {
+        // Throw an error if the directory doesn't exist
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!(
+                "Coverage directory not found at {}",
+                coverage_directory.display()
+            ),
+        ));
+    }
+
+    Ok(coverage_directory)
+}
+
+// This code writes a profile to disk in the profraw format. The profile is
+// written to the profraw directory under the wasmcov directory. The file name
+// is a UUID. The data is passed as a byte vector.
+pub fn write_profraw(data: Vec<u8>) {
     let id = Uuid::new_v4();
 
-    std::fs::write(format!("../profraw/{id}.profraw"), coverage).unwrap();
+    let wasmcov_dir = get_wasmcov_dir().unwrap();
+    let profraw_dir = wasmcov_dir.join("profraw");
+    if !Path::new(&profraw_dir).exists() {
+        fs::create_dir_all(&profraw_dir).unwrap();
+    }
+
+    let profraw_path = profraw_dir.join(format!("{}.profraw", id));
+    fs::write(profraw_path, data).unwrap();
 }
