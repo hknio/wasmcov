@@ -27,6 +27,7 @@ Follow the [NEAR setup instructions](blockchains/NEAR.md) to setup the environme
 
 
 ### NEAR Protocol
+
 ```rust
 use wasmcov::{near_coverage};
 
@@ -40,9 +41,12 @@ fn main() {
 
 ## License
 
-This repository is distributed under the terms of both the MIT license and the Apache License (Version 2.0). See [LICENSE](LICENSE) and [LICENSE-APACHE](LICENSE-APACHE) for details.## License
+This repository is distributed under the terms of the Apache License (Version 2.0). See [LICENSE](LICENSE) for details.
 
 ## Maintainer
 
-This repository is maintained by [Noah Jelich](https://www.linkedin.com/in/njelich/) from [Hacken](https://hacken.io/). Feel free to contact me with any questions or concerns.
+This repository is currently maintained by [Noah Jelich](https://www.linkedin.com/in/njelich/) from [Hacken](https://hacken.io/). Feel free to contact me with any questions or concerns.
 
+## Contributing
+
+Contributions are welcome! Use the `cargo build` command to build the project. Note: when testing, make sure to disable paralleliism by using the `--test-threads=1` flag. This is required to ensure that environment variables are not overwritten by other tests.
