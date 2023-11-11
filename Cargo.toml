@@ -13,13 +13,29 @@ proc-macro = true
 
 [[bin]]
 name = "wasmcov"
-path = "src/bin.rs"
+path = "src/main.rs"
+
+[[bin]]
+name = "neard"
+path = "bin/neard"
 
 [dependencies]
 syn = "2.0.38"
 quote = "1.0.33"
-near-sdk = "4.1.1"
 serde_json = { version = "1.0", features = ["arbitrary_precision"] }
 
 minicov = "0.3"
+clap = { version = "4.4.7", features = ["derive"] }
+near-workspaces = "0.9.0"
+uuid = { version = "1.5.0", features = ["v4"] }
+
+# Define feature flags for specific blockchains
+[features]
+near = ["near-sdk"]
+radix = []
+
+[dependencies.near-sdk]
+version = "4.1.1"
+optional = true
+
 
