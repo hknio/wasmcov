@@ -30,10 +30,11 @@ pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) {
         fs::create_dir_all(&coverage_directory.join("profraw")).unwrap();
     }
 
+    // Removed due to crate size limits.
     // Include neard binar from bin/neard and write it to WASMCOV_DIR/bin/neard
-    let neard_bin = include_bytes!("../bin/neard");
-    let neard_bin_path = coverage_directory.join("bin").join("neard");
-    fs::write(neard_bin_path, neard_bin).expect("Failed to create neard binary");
+    // let neard_bin = include_bytes!("../bin/neard");
+    // let neard_bin_path = coverage_directory.join("bin").join("neard");
+    // fs::write(neard_bin_path, neard_bin).expect("Failed to create neard binary");
 }
 
 // Get the coverage directory from the WASMCOV_DIR environment variable.
