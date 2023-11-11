@@ -2,9 +2,19 @@
 name = "wasmcov"
 version = "0.0.1"
 edition = "2021"
-authors = ["Noah Jelich <n.jelich@hacken.io>"]
+authors = ["Noah Jelich <n.jelich@hacken.io>", "Bartosz Barwikowski <b.barwikowski@hacken.io>"]
 description = "A set of helpers for coverage of wasm modules"
-license = "MIT"
+
+license = "Apache-2.0"
+license-file = "LICENSE"
+
+readme ="README.md"
+documentation = "https://hknio.github.io/wasmcov/"
+repository = "https://github.com/hknio/wasmcov"
+
+keywords = ["crypto", "wasm", "blockchain", "testing", "profiling"]
+categories = ["development-tools", "embedded", "wasm", "command-line-utilities", "cryptography::cryptocurrencies"]
+
 
 [lib]
 name = "wasmcov"
