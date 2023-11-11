@@ -6,7 +6,6 @@ authors = ["Noah Jelich <n.jelich@hacken.io>", "Bartosz Barwikowski <b.barwikows
 description = "A set of helpers for coverage of wasm modules"
 
 license = "Apache-2.0"
-license-file = "LICENSE"
 
 readme ="README.md"
 documentation = "https://hknio.github.io/wasmcov/"
