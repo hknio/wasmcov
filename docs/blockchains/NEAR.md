@@ -19,7 +19,7 @@ overflow-checks = true
 
 ## 2. Set Up Custom NEAR Sandbox Local Network
 
-Before running tests with coverage, you need to set up a custom NEAR Protocol sandbox with modified parameters to allow for higher gas limits. Use the following commands. You can find the `neard` binary [in this repo](../../bin/).
+Before running tests with coverage, you need to set up a custom NEAR Protocol sandbox with modified parameters to allow for higher gas limits. Use the following commands. You can find the `neard` binary [in this repo](https://github.com/hknio/wasmcov/tree/main/bin).
 
 Initialize the sandbox:
 

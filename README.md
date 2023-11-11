@@ -6,6 +6,8 @@
 
 Wasmcov is a Rust library that provides a set of helpers for coverage analysis of WebAssembly (Wasm) modules. It allows you to collect and analyze code coverage data when running Wasm modules. Wasmcov is designed to be flexible and easy to integrate into your Wasm projects, making it a powerful tool for improving the quality of your Wasm applications.
 
+Currently supports only NEAR Protocol.
+
 ## Installation
 
 Add `wasmcov` as a dependency in your `Cargo.toml`, setting feature flags based on your environment:
@@ -16,7 +18,7 @@ version = "0.0.1"
 features = ["near"]
 ```
 
-Follow the NEAR documentation to setup the environment for running Wasm modules. The `near` feature flag is required for NEAR Protocol coverage.
+Follow the [NEAR setup instructions](blockchains/NEAR.md) to setup the environment for running Wasm modules. The `near` feature flag is required for NEAR Protocol coverage.
 
 ## Usage
 
