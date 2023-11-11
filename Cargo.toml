@@ -15,6 +15,10 @@ repository = "https://github.com/hknio/wasmcov"
 keywords = ["crypto", "wasm", "blockchain", "testing", "profiling"]
 categories = ["development-tools", "embedded", "wasm", "command-line-utilities", "cryptography::cryptocurrencies"]
 
+exclude = [
+    "bin/*",
+    "docs/*",
+]
 
 [lib]
 name = "wasmcov"
