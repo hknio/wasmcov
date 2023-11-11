@@ -42,3 +42,7 @@ fn main() {
 
 This repository is distributed under the terms of both the MIT license and the Apache License (Version 2.0). See [LICENSE](LICENSE) and [LICENSE-APACHE](LICENSE-APACHE) for details.## License
 
+## Maintainer
+
+This repository is maintained by [Noah Jelich](https://www.linkedin.com/in/njelich/) from [Hacken](https://hacken.io/). Feel free to contact me with any questions or concerns.
+

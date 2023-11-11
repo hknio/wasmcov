@@ -4,7 +4,7 @@ This guide aims to assist you in implementing code coverage for WebAssembly (WAS
 
 Blockchain specific instructions:
 - [NEAR Protocol](blockchains/NEAR.md)
-- [Radix](blockchains/Radix.md)
+- [Radix DLT](blockchains/Radix.md)
 
 ## Step 1: Adding Code Coverage Instrumentation to WASM Binary
 
