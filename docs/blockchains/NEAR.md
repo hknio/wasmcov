@@ -24,13 +24,13 @@ Before running tests with coverage, you need to set up a custom NEAR Protocol sa
 Initialize the sandbox:
 
 ```bash
-./neard --home ./target/wasmcov/.near init
+./neard --home $WASMCOV_DIR/bin/.near init
 ```
 
 Run the sandbox:
 
 ```bash
-./neard --home ./target/wasmcov/.near run
+./neard --home $WASMCOV_DIR/bin/.near run
 ```
 
 ## 3. Connect NEAR Workspaces to the Custom Sandbox
@@ -38,9 +38,12 @@ Run the sandbox:
 In your tests, you need to connect NEAR Workspaces to the custom test sandbox. Replace the standard `near_workspaces::sandbox().await?` code with the following:
 
 ```rust
+use wasmcov::{get_wasmcov_dir};
+
+...
 let worker = near_workspaces::sandbox()
     .rpc_addr("http://localhost:3030")
-    .validator_key(ValidatorKey::HomeDir(PathBuf::from("./target/wasmcov/.near")))
+    .validator_key(ValidatorKey::HomeDir(get_wasmcov_dir().join("bin").join(".near")))
     .await?;
 ```
 
