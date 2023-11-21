@@ -46,3 +46,5 @@ This repository is currently maintained by [Noah Jelich](https://www.linkedin.co
 ## Contributing
 
 Contributions are welcome! Use the `cargo build` command to build the project. Note: when testing, make sure to disable paralleliism by using the `--test-threads=1` flag. This is required to ensure that environment variables are not overwritten by other tests.
+
+For ease of use, you can use the shorthands `make build` and `make test` to build and test the project, respectively.
