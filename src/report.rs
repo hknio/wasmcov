@@ -185,5 +185,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(object_file_contents, object_file_expected_contents);
+
+        // Clean up
+        std::fs::remove_file(get_output_dir().unwrap().join("fibonacci.ll.o")).unwrap();
     }
 }
