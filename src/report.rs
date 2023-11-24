@@ -30,7 +30,7 @@ fn modify_ll_file(ll_path: &Path) -> Result<()> {
     let mut ll_contents = String::new();
 
     File::open(&ll_path)
-        .expect(&format!("Failed to open LL file {:?}", ll_path))
+        .expect(&format!("Failed to open LL file {:?}.", ll_path))
         .read_to_string(&mut ll_contents)?;
 
     let modified_ll_contents = Regex::new(r"(?ms)^(define[^\n]*\n).*?^}\s*$")
