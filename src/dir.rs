@@ -19,6 +19,12 @@ pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) {
     if !Path::new(&coverage_directory).exists() {
         fs::create_dir_all(&coverage_directory).unwrap();
     }
+
+    // Create the profraw directory if it does not exist.
+    let profraw_directory = coverage_directory.join("profraw");
+    if !Path::new(&profraw_directory).exists() {
+        fs::create_dir_all(&profraw_directory).unwrap();
+    }
 }
 
 // Get the coverage directory from the WASMCOV_DIR environment variable.
@@ -30,11 +36,8 @@ pub fn get_wasmcov_dir() -> Result<PathBuf> {
         .unwrap_or(default_directory);
 
     if !Path::new(&coverage_directory).exists() {
-        // Throw an error if the directory doesn't exist
-        return Err(anyhow!(
-            "Coverage directory not found at {}",
-            coverage_directory.display()
-        ));
+        // Create it if it doesn't exist
+        fs::create_dir_all(&coverage_directory).unwrap();
     }
 
     Ok(coverage_directory)
@@ -45,11 +48,8 @@ pub fn get_profraw_dir() -> Result<PathBuf> {
     let profraw_dir = wasmcov_dir.join("profraw");
 
     if !Path::new(&profraw_dir).exists() {
-        // Throw an error if the directory doesn't exist
-        return Err(anyhow!(
-            "Profraw directory not found at {}",
-            profraw_dir.display()
-        ));
+        // Create it if it doesn't exist
+        fs::create_dir_all(&profraw_dir).unwrap();
     }
 
     Ok(profraw_dir)
@@ -60,11 +60,8 @@ pub fn get_output_dir() -> Result<PathBuf> {
     let output_dir = wasmcov_dir.join("output");
 
     if !Path::new(&output_dir).exists() {
-        // Throw an error if the directory doesn't exist
-        return Err(anyhow!(
-            "Output directory not found at {}",
-            output_dir.display()
-        ));
+        // Create it if it doesn't exist
+        fs::create_dir_all(&output_dir).unwrap();
     }
 
     Ok(output_dir)
@@ -140,12 +137,13 @@ mod tests {
     fn test_get_output_dir() {
         // Set the WASMCOV_DIR environment variable to a temporary directory.
         let temp_dir = tempdir().unwrap();
-        let temp_dir_path = temp_dir.path().to_path_buf();
+        let temp_dir_path = &temp_dir.path().to_path_buf();
         set_wasmcov_dir(Some(&temp_dir_path));
 
         // Check that the directory exists.
         let output_dir = get_output_dir().unwrap();
         assert_eq!(output_dir, temp_dir_path.join("output"));
+        assert!(Path::new(&output_dir).exists());
 
         // Clean up.
         fs::remove_dir_all(temp_dir).unwrap();

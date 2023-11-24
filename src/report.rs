@@ -11,28 +11,15 @@ use std::process::Command;
 fn merge_profraw_to_profdata(llvm_major_version: &str) -> Result<()> {
     let profraw_dir = get_profraw_dir()?;
 
-    let profraw_files: Vec<String> = std::fs::read_dir(&profraw_dir)?
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path: PathBuf = entry.path();
-            if path.extension()?.to_string_lossy() == "profraw" {
-                Some(path.to_str()?.to_owned())
-            } else {
-                None
-            }
-        })
-        .collect();
+    let command = format!(
+        "llvm-profdata-{} merge -sparse {}/*.profraw -o {}/coverage.profdata",
+        llvm_major_version,
+        profraw_dir.to_str().unwrap(),
+        profraw_dir.to_str().unwrap()
+    );
 
-    let output = run_command(
-        &format!("llvm-profdata-{}", llvm_major_version),
-        &[
-            "merge",
-            "-sparse",
-            profraw_files.join(" ").as_str(),
-            "-o",
-            profraw_dir.join("coverage.profdata").to_str().unwrap(),
-        ],
-    )?;
+    // TODO: Improve this ugly temp fix - otheriwe it throws can't find files error
+    let output = run_command("sh", &["-c", command.as_str()])?;
 
     print!("{:?}", output);
 
@@ -58,20 +45,18 @@ fn modify_ll_file(ll_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn generate_ll_object_file(
-    wasm_path: &Path,
-    data_path: &Path,
-    llvm_major_version: &str,
-) -> Result<(), anyhow::Error> {
-    let ll_path = wasm_path.with_extension("ll");
+fn generate_object_file(name: &str, llvm_major_version: &str) -> Result<(), anyhow::Error> {
+    let output_dir = get_output_dir()?;
+
     let output = run_command(
         &format!("clang-{}", llvm_major_version),
         &[
-            ll_path.to_str().unwrap(),
+            // name.ll is the input file
+            output_dir.join(format!("{}.ll", name)).to_str().unwrap(),
             "-Wno-override-module",
             "-c",
             "-o",
-            data_path.join("coverage.ll.o").to_str().unwrap(),
+            output_dir.join(format!("{}.ll.o", name)).to_str().unwrap(),
         ],
     )?;
 
@@ -123,49 +108,42 @@ mod tests {
 
     #[test]
     fn test_merge_profraw_to_profdata() {
-        // Profraw files are located in tests/profraw directory, so tests is going to be WASMCOV_DIR
-        // Set WASMCOV_DIR environment variable to the tests directory using full path
         std::env::set_var(
             "WASMCOV_DIR",
             std::env::current_dir().unwrap().join("tests"),
         );
 
-        // Print current directory
-
         merge_profraw_to_profdata("16").unwrap();
 
-        // // Compare coverage.profdata and expected
-        // let mut profdata_contents = String::new();
-        // let mut profdata_expected_contents = String::new();
+        // Compare coverage.profdata and expected (bytes, not text)
+        let mut profdata_contents = Vec::new();
+        let mut profdata_expected_contents = Vec::new();
+        File::open(get_profraw_dir().unwrap().join("coverage.profdata"))
+            .expect("Failed to open coverage.profdata")
+            .read_to_end(&mut profdata_contents)
+            .unwrap();
+        File::open(
+            get_profraw_dir()
+                .unwrap()
+                .join("coverage-expected.profdata"),
+        )
+        .expect("Failed to open coverage-expected.profdata")
+        .read_to_end(&mut profdata_expected_contents)
+        .unwrap();
 
-        // let profdata_path = get_profraw_dir().unwrap().join("coverage.profdata");
-        // let profdata_expected_path = Path::new("tests").join("coverage-expected.profdata");
+        assert_eq!(profdata_contents, profdata_expected_contents);
 
-        // File::open(&profdata_path)
-        //     .expect(&format!("Failed to open profdata file {:?}", profdata_path))
-        //     .read_to_string(&mut profdata_contents)
-        //     .unwrap();
-
-        // File::open(&profdata_expected_path)
-        //     .expect(&format!(
-        //         "Failed to open profdata file {:?}",
-        //         profdata_expected_path
-        //     ))
-        //     .read_to_string(&mut profdata_expected_contents)
-        //     .unwrap();
-
-        // assert_eq!(profdata_contents, profdata_expected_contents);
+        // Clean up
+        std::fs::remove_file(get_profraw_dir().unwrap().join("coverage.profdata")).unwrap();
     }
 
     #[test]
     fn test_modify_ll_file() {
-        // Copy the tests/fibonacci.ll file to tests/fibonacci-tmp.ll
-        let ll_path = Path::new("tests").join("fibonacci.ll");
-        let ll_modified_path = Path::new("tests").join("fibonacci-modified.ll");
-        let ll_expepcted_path = Path::new("tests").join("fibonacci-modified.ll");
+        let ll_path = Path::new("tests/output").join("fibonacci.ll");
+        let ll_modified_path = Path::new("tests/output").join("fibonacci-modified.ll");
+        let ll_expepcted_path = Path::new("tests/output").join("fibonacci-modified.ll");
         std::fs::copy(&ll_path, &ll_modified_path).unwrap();
 
-        // Modify the tests/fibonacci-tmp.ll file
         modify_ll_file(&ll_modified_path).unwrap();
 
         // Compare fibonacci-modified.ll and expected
@@ -183,5 +161,29 @@ mod tests {
 
         // Clean up
         std::fs::remove_file(&ll_modified_path).unwrap();
+    }
+
+    #[test]
+    fn test_generate_object_file() {
+        std::env::set_var(
+            "WASMCOV_DIR",
+            std::env::current_dir().unwrap().join("tests"),
+        );
+
+        generate_object_file("fibonacci", "16").unwrap();
+
+        // Compare fibonacci.ll.o and expected (bytes, not text)
+        let mut object_file_contents = Vec::new();
+        let mut object_file_expected_contents = Vec::new();
+        File::open(get_output_dir().unwrap().join("fibonacci.ll.o"))
+            .expect("Failed to open fibonacci.ll.o")
+            .read_to_end(&mut object_file_contents)
+            .unwrap();
+        File::open(get_output_dir().unwrap().join("fibonacci-expected.ll.o"))
+            .expect("Failed to open fibonacci-expected.ll.o")
+            .read_to_end(&mut object_file_expected_contents)
+            .unwrap();
+
+        assert_eq!(object_file_contents, object_file_expected_contents);
     }
 }
