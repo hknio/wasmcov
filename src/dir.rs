@@ -42,12 +42,32 @@ pub fn get_wasmcov_dir() -> Result<PathBuf> {
 
 pub fn get_profraw_dir() -> Result<PathBuf> {
     let wasmcov_dir = get_wasmcov_dir().unwrap();
-    Ok(wasmcov_dir.join("profraw"))
+    let profraw_dir = wasmcov_dir.join("profraw");
+
+    if !Path::new(&profraw_dir).exists() {
+        // Throw an error if the directory doesn't exist
+        return Err(anyhow!(
+            "Profraw directory not found at {}",
+            profraw_dir.display()
+        ));
+    }
+
+    Ok(profraw_dir)
 }
 
 pub fn get_output_dir() -> Result<PathBuf> {
     let wasmcov_dir = get_wasmcov_dir().unwrap();
-    Ok(wasmcov_dir.join("output"))
+    let output_dir = wasmcov_dir.join("output");
+
+    if !Path::new(&output_dir).exists() {
+        // Throw an error if the directory doesn't exist
+        return Err(anyhow!(
+            "Output directory not found at {}",
+            output_dir.display()
+        ));
+    }
+
+    Ok(output_dir)
 }
 
 // This code writes a profile to disk in the profraw format. The profile is
@@ -56,8 +76,7 @@ pub fn get_output_dir() -> Result<PathBuf> {
 pub fn write_profraw(data: Vec<u8>) {
     let id = Uuid::new_v4();
 
-    let wasmcov_dir = get_wasmcov_dir().unwrap();
-    let profraw_dir = wasmcov_dir.join("profraw");
+    let profraw_dir = get_profraw_dir().unwrap();
     if !Path::new(&profraw_dir).exists() {
         fs::create_dir_all(&profraw_dir).unwrap();
     }
@@ -97,6 +116,36 @@ mod tests {
         // Check that the directory exists.
         let wasmcov_dir = get_wasmcov_dir().unwrap();
         assert_eq!(wasmcov_dir, temp_dir_path);
+
+        // Clean up.
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_get_profraw_dir() {
+        // Set the WASMCOV_DIR environment variable to a temporary directory.
+        let temp_dir = tempdir().unwrap();
+        let temp_dir_path = temp_dir.path().to_path_buf();
+        set_wasmcov_dir(Some(&temp_dir_path));
+
+        // Check that the directory exists.
+        let profraw_dir = get_profraw_dir().unwrap();
+        assert_eq!(profraw_dir, temp_dir_path.join("profraw"));
+
+        // Clean up.
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_get_output_dir() {
+        // Set the WASMCOV_DIR environment variable to a temporary directory.
+        let temp_dir = tempdir().unwrap();
+        let temp_dir_path = temp_dir.path().to_path_buf();
+        set_wasmcov_dir(Some(&temp_dir_path));
+
+        // Check that the directory exists.
+        let output_dir = get_output_dir().unwrap();
+        assert_eq!(output_dir, temp_dir_path.join("output"));
 
         // Clean up.
         fs::remove_dir_all(temp_dir).unwrap();
