@@ -43,7 +43,13 @@ fn check_command_availability(command: String) -> Result<()> {
     }
 }
 
-pub fn verify_tooling() -> Result<bool> {
+pub struct VerifyToolingResult {
+    pub is_nightly: bool,
+    pub llvm_major_version: String,
+    pub should_cleanup: bool,
+}
+
+pub fn verify_tooling() -> Result<VerifyToolingResult> {
     check_wasm_target(false)?;
 
     let (mut is_nightly, mut llvm_major_version) = check_rustc_version()?;
@@ -72,7 +78,12 @@ pub fn verify_tooling() -> Result<bool> {
     check_command_availability(format!("llvm-cov-{}", &llvm_major_version))?;
     check_command_availability(format!("llvm-profdata-{}", &llvm_major_version))?;
 
-    Ok(should_cleanup)
+    // return object with is_ngihtly, llvm_major_version and should_cleanup
+    Ok(VerifyToolingResult {
+        is_nightly,
+        llvm_major_version,
+        should_cleanup,
+    })
 }
 
 pub fn unset_rustup_toolchain(should_cleanup: bool) {
@@ -140,8 +151,8 @@ mod tests {
 
         assert!(result.is_ok());
 
-        let should_cleanup = result.unwrap();
+        let verify_tooling_result = result.unwrap();
 
-        unset_rustup_toolchain(should_cleanup);
+        unset_rustup_toolchain(verify_tooling_result.should_cleanup);
     }
 }
