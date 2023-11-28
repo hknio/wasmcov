@@ -19,12 +19,6 @@ pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) {
     if !Path::new(&coverage_directory).exists() {
         fs::create_dir_all(&coverage_directory).unwrap();
     }
-
-    // Create the profraw directory if it does not exist.
-    let profraw_directory = coverage_directory.join("profraw");
-    if !Path::new(&profraw_directory).exists() {
-        fs::create_dir_all(&profraw_directory).unwrap();
-    }
 }
 
 // Get the coverage directory from the WASMCOV_DIR environment variable.

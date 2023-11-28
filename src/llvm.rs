@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use regex::Regex;
 use std::{env, process::Command};
 
-use crate::run_command;
+use crate::{dir::get_output_dir, run_command};
 
 fn check_rustc_version() -> Result<(bool, String)> {
     let output_str = run_command("rustc", &["--version", "--verbose"])?;
@@ -43,6 +43,11 @@ fn check_command_availability(command: String) -> Result<()> {
     }
 }
 
+fn set_target_dir() {
+    let target_dir = get_output_dir().unwrap();
+    env::set_var("CARGO_TARGET_DIR", target_dir);
+}
+
 pub struct VerifyToolingResult {
     pub is_nightly: bool,
     pub llvm_major_version: String,
@@ -77,6 +82,8 @@ pub fn verify_tooling() -> Result<VerifyToolingResult> {
     check_command_availability(format!("clang-{}", &llvm_major_version))?;
     check_command_availability(format!("llvm-cov-{}", &llvm_major_version))?;
     check_command_availability(format!("llvm-profdata-{}", &llvm_major_version))?;
+
+    set_target_dir();
 
     // return object with is_ngihtly, llvm_major_version and should_cleanup
     Ok(VerifyToolingResult {

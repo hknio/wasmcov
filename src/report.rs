@@ -189,4 +189,7 @@ mod tests {
         // Clean up
         std::fs::remove_file(get_output_dir().unwrap().join("fibonacci.ll.o")).unwrap();
     }
+
+    #[test]
+    fn generate_coverage_report() {}
 }

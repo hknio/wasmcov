@@ -1,5 +1,3 @@
-use std::result;
-
 use wasmcov::llvm::{unset_rustup_toolchain, verify_tooling, VerifyToolingResult};
 
 fn main() {
@@ -7,7 +5,7 @@ fn main() {
         .subcommand_required(true)
         .subcommand(clap::command!("verify-tooling").about("Verify tooling is installed"));
 
-    let mut cmd = clap::Command::new("cargo")
+    let cmd = clap::Command::new("cargo")
         .bin_name("cargo")
         .subcommand_required(true)
         .subcommand(wasmcov);
