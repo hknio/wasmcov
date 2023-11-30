@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Result};
 use regex::Regex;
-use std::{env, process::Command};
+use std::process::Command;
 
-use crate::{dir::get_output_dir, run_command};
+use crate::run_command;
 
-fn check_rustc_version() -> Result<(bool, String)> {
+pub(crate) fn check_rustc_version() -> Result<(bool, String)> {
     let output_str = run_command("rustc", &["--version", "--verbose"])?;
     let is_nightly = output_str.contains("nightly");
     let llvm_major_version = Regex::new(r"LLVM version: (\d+)")
@@ -43,60 +43,24 @@ fn check_command_availability(command: String) -> Result<()> {
     }
 }
 
-fn set_target_dir() {
-    let target_dir = get_output_dir().unwrap();
-    env::set_var("CARGO_TARGET_DIR", target_dir);
-}
-
 pub struct VerifyToolingResult {
     pub is_nightly: bool,
     pub llvm_major_version: String,
-    pub should_cleanup: bool,
 }
 
 pub fn verify_tooling() -> Result<VerifyToolingResult> {
-    check_wasm_target(false)?;
-
     let (mut is_nightly, mut llvm_major_version) = check_rustc_version()?;
 
-    let mut should_cleanup = false;
-
-    if !is_nightly {
-        env::set_var("RUSTUP_TOOLCHAIN", "nightly");
-
-        if let Ok((nightly_toolchain, toolchain_version)) = check_rustc_version() {
-            is_nightly = nightly_toolchain;
-            llvm_major_version = toolchain_version;
-
-            if !is_nightly {
-                return Err(anyhow!("Coverage tool requires nightly version of the rust toolchain.\nYou can install it by using the following commands:\nrustup target add wasm32-unknown-unknown --toolchain=nightly"));
-            }
-
-            check_wasm_target(is_nightly)?;
-            should_cleanup = true;
-        } else {
-            return Err(anyhow!("Failed to set nightly toolchain."));
-        }
-    }
+    check_wasm_target(is_nightly)?;
 
     check_command_availability(format!("clang-{}", &llvm_major_version))?;
     check_command_availability(format!("llvm-cov-{}", &llvm_major_version))?;
     check_command_availability(format!("llvm-profdata-{}", &llvm_major_version))?;
 
-    set_target_dir();
-
-    // return object with is_ngihtly, llvm_major_version and should_cleanup
     Ok(VerifyToolingResult {
         is_nightly,
         llvm_major_version,
-        should_cleanup,
     })
-}
-
-pub fn unset_rustup_toolchain(should_cleanup: bool) {
-    if should_cleanup {
-        env::remove_var("RUSTUP_TOOLCHAIN");
-    }
 }
 
 #[cfg(test)]
@@ -159,7 +123,5 @@ mod tests {
         assert!(result.is_ok());
 
         let verify_tooling_result = result.unwrap();
-
-        unset_rustup_toolchain(verify_tooling_result.should_cleanup);
     }
 }

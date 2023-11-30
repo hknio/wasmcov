@@ -1,4 +1,4 @@
-use crate::dir::{get_output_dir, get_profraw_dir};
+use crate::dir::{get_output_dir, get_profraw_dir, get_wasmcov_dir};
 use crate::run_command;
 use anyhow::{anyhow, Result};
 use regex::Regex;
@@ -8,7 +8,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn merge_profraw_to_profdata(llvm_major_version: &str) -> Result<()> {
+pub(crate) fn merge_profraw_to_profdata(llvm_major_version: &str) -> Result<()> {
     let profraw_dir = get_profraw_dir()?;
 
     let command = format!(
@@ -26,51 +26,70 @@ fn merge_profraw_to_profdata(llvm_major_version: &str) -> Result<()> {
     Ok(())
 }
 
-fn modify_ll_file(ll_path: &Path) -> Result<()> {
-    let mut ll_contents = String::new();
-
-    File::open(&ll_path)
-        .expect(&format!("Failed to open LL file {:?}.", ll_path))
-        .read_to_string(&mut ll_contents)?;
-
-    let modified_ll_contents = Regex::new(r"(?ms)^(define[^\n]*\n).*?^}\s*$")
-        .unwrap()
-        .replace_all(&ll_contents, "${1}start:\n  unreachable\n}\n")
-        .to_string();
-
-    File::create(&ll_path)
-        .expect(&format!("Failed to open LL file {:?}", ll_path))
-        .write_all(modified_ll_contents.as_bytes())?;
-
-    Ok(())
-}
-
-fn generate_object_file(name: &str, llvm_major_version: &str) -> Result<(), anyhow::Error> {
+pub(crate) fn modify_ll_files() -> Result<()> {
     let output_dir = get_output_dir()?;
 
-    let output = run_command(
-        &format!("clang-{}", llvm_major_version),
-        &[
-            // name.ll is the input file
-            output_dir.join(format!("{}.ll", name)).to_str().unwrap(),
-            "-Wno-override-module",
-            "-c",
-            "-o",
-            output_dir.join(format!("{}.ll.o", name)).to_str().unwrap(),
-        ],
-    )?;
+    // Modify all .ll files in the output directory, use glob
+    for entry in glob::glob(output_dir.join("*.ll").to_str().unwrap()).unwrap() {
+        match entry {
+            Ok(path) => {
+                let mut ll_contents = String::new();
+
+                File::open(&path)
+                    .expect(&format!("Failed to open LL file {:?}.", path))
+                    .read_to_string(&mut ll_contents)?;
+
+                let modified_ll_contents = Regex::new(r"(?ms)^(define[^\n]*\n).*?^}\s*$")
+                    .unwrap()
+                    .replace_all(&ll_contents, "${1}start:\n  unreachable\n}\n")
+                    .to_string();
+
+                File::create(&path)
+                    .expect(&format!("Failed to open LL file {:?}", path))
+                    .write_all(modified_ll_contents.as_bytes())?;
+            }
+            Err(e) => println!("{:?}", e),
+        }
+    }
 
     Ok(())
 }
 
-fn generate_coverage_report(
-    data_path: &Path,
-    coverage_path: &Path,
+pub(crate) fn generate_object_file(llvm_major_version: &str) -> Result<(), anyhow::Error> {
+    let output_dir = get_output_dir()?;
+
+    // Run on every .ll file in the output directory, use glob
+    for entry in glob::glob(output_dir.join("*.ll").to_str().unwrap()).unwrap() {
+        match entry {
+            Ok(path) => {
+                let name = path.file_stem().unwrap().to_str().unwrap();
+
+                let output = run_command(
+                    &format!("clang-{}", llvm_major_version),
+                    &[
+                        // name.ll is the input file
+                        path.to_str().unwrap(),
+                        "-Wno-override-module",
+                        "-c",
+                        "-o",
+                        output_dir.join(format!("{}.ll.o", name)).to_str().unwrap(),
+                    ],
+                )?;
+            }
+            Err(e) => println!("{:?}", e),
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn generate_coverage_report(
+    object_file: &Path,
     llvm_major_version: &str,
 ) -> Result<(), anyhow::Error> {
-    let profdata_path = data_path.join("coverage.profdata");
-    let object_file_path = data_path.join("coverage.ll.o");
-    let coverage_report_path = coverage_path.join("report");
+    let profdata_path = get_profraw_dir()?.join("coverage.profdata");
+    let coverage_report_path = get_wasmcov_dir()?.join("coverage-report");
+    let object_file_path = object_file;
 
     let output = run_command(
         &format!("llvm-cov-{}", llvm_major_version),
@@ -139,12 +158,17 @@ mod tests {
 
     #[test]
     fn test_modify_ll_file() {
+        std::env::set_var(
+            "WASMCOV_DIR",
+            std::env::current_dir().unwrap().join("tests"),
+        );
+
         let ll_path = Path::new("tests/output").join("fibonacci.ll");
         let ll_modified_path = Path::new("tests/output").join("fibonacci-modified.ll");
-        let ll_expepcted_path = Path::new("tests/output").join("fibonacci-modified.ll");
+        let ll_expected_path = Path::new("tests/output").join("fibonacci-modified.ll");
         std::fs::copy(&ll_path, &ll_modified_path).unwrap();
 
-        modify_ll_file(&ll_modified_path).unwrap();
+        modify_ll_files().unwrap();
 
         // Compare fibonacci-modified.ll and expected
         let mut ll_modified_contents = String::new();
@@ -153,8 +177,8 @@ mod tests {
             .expect(&format!("Failed to open LL file {:?}", ll_modified_path))
             .read_to_string(&mut ll_modified_contents)
             .unwrap();
-        File::open(&ll_expepcted_path)
-            .expect(&format!("Failed to open LL file {:?}", ll_expepcted_path))
+        File::open(&ll_expected_path)
+            .expect(&format!("Failed to open LL file {:?}", ll_expected_path))
             .read_to_string(&mut ll_expected_contents)
             .unwrap();
         assert_eq!(ll_modified_contents, ll_expected_contents);
@@ -170,7 +194,7 @@ mod tests {
             std::env::current_dir().unwrap().join("tests"),
         );
 
-        generate_object_file("fibonacci", "16").unwrap();
+        generate_object_file("16").unwrap();
 
         // Compare fibonacci.ll.o and expected (bytes, not text)
         let mut object_file_contents = Vec::new();

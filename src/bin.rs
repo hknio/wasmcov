@@ -1,4 +1,4 @@
-use wasmcov::llvm::{unset_rustup_toolchain, verify_tooling, VerifyToolingResult};
+use wasmcov::llvm::{verify_tooling, VerifyToolingResult};
 
 fn main() {
     let wasmcov = clap::command!("wasmcov")
@@ -24,14 +24,10 @@ fn main() {
                 Ok(VerifyToolingResult {
                     is_nightly,
                     llvm_major_version,
-                    should_cleanup,
                 }) => {
                     println!("Tooling is installed!");
                     println!("is_nightly: {}", is_nightly);
                     println!("llvm_major_version: {}", llvm_major_version);
-                    if should_cleanup {
-                        unset_rustup_toolchain(should_cleanup);
-                    }
                 }
                 Err(e) => {
                     println!("Error: {}", e);

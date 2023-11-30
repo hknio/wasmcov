@@ -18,68 +18,8 @@ $__profc_main = comdat nodeduplicate
 
 ; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @main() #0 {
-  %1 = alloca i32, align 4
-  %2 = alloca i32, align 4
-  %3 = alloca i32, align 4
-  %4 = alloca i32, align 4
-  %5 = alloca i32, align 4
-  %6 = alloca i32, align 4
-  store i32 0, i32* %1, align 4
-  %7 = load i64, i64* getelementptr inbounds ([3 x i64], [3 x i64]* @__profc_main, i32 0, i32 0), align 8
-  %8 = add i64 %7, 1
-  store i64 %8, i64* getelementptr inbounds ([3 x i64], [3 x i64]* @__profc_main, i32 0, i32 0), align 8
-  store i32 30, i32* %2, align 4
-  store i32 0, i32* %3, align 4
-  store i32 0, i32* %4, align 4
-  store i32 0, i32* %6, align 4
-  br label %9
-
-9:                                                ; preds = %31, %0
-  %10 = load i32, i32* %6, align 4
-  %11 = load i32, i32* %2, align 4
-  %12 = icmp slt i32 %10, %11
-  br i1 %12, label %13, label %34
-
-13:                                               ; preds = %9
-  %14 = load i64, i64* getelementptr inbounds ([3 x i64], [3 x i64]* @__profc_main, i32 0, i32 1), align 8
-  %15 = add i64 %14, 1
-  store i64 %15, i64* getelementptr inbounds ([3 x i64], [3 x i64]* @__profc_main, i32 0, i32 1), align 8
-  %16 = load i32, i32* %6, align 4
-  %17 = icmp sle i32 %16, 1
-  br i1 %17, label %18, label %22
-
-18:                                               ; preds = %13
-  %19 = load i64, i64* getelementptr inbounds ([3 x i64], [3 x i64]* @__profc_main, i32 0, i32 2), align 8
-  %20 = add i64 %19, 1
-  store i64 %20, i64* getelementptr inbounds ([3 x i64], [3 x i64]* @__profc_main, i32 0, i32 2), align 8
-  %21 = load i32, i32* %6, align 4
-  store i32 %21, i32* %5, align 4
-  br label %28
-
-22:                                               ; preds = %13
-  %23 = load i32, i32* %3, align 4
-  %24 = load i32, i32* %4, align 4
-  %25 = add nsw i32 %23, %24
-  store i32 %25, i32* %5, align 4
-  %26 = load i32, i32* %4, align 4
-  store i32 %26, i32* %3, align 4
-  %27 = load i32, i32* %5, align 4
-  store i32 %27, i32* %4, align 4
-  br label %28
-
-28:                                               ; preds = %22, %18
-  %29 = load i32, i32* %5, align 4
-  %30 = call i32 (i8*, ...) @printf(i8* noundef getelementptr inbounds ([4 x i8], [4 x i8]* @.str, i64 0, i64 0), i32 noundef %29)
-  br label %31
-
-31:                                               ; preds = %28
-  %32 = load i32, i32* %6, align 4
-  %33 = add nsw i32 %32, 1
-  store i32 %33, i32* %6, align 4
-  br label %9, !llvm.loop !7
-
-34:                                               ; preds = %9
-  ret i32 0
+start:
+  unreachable
 }
 
 ; Function Attrs: nounwind

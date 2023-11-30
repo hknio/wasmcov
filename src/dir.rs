@@ -1,5 +1,5 @@
-use anyhow::anyhow;
 use anyhow::Result;
+use glob::glob;
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -14,6 +14,7 @@ pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) {
 
     // Set the directory that wasm-cov will store coverage data in.
     env::set_var("WASMCOV_DIR", &coverage_directory);
+    env::set_var("CARGO_TARGET_DIR", &coverage_directory.join("target"));
 
     // Create the coverage directory if it does not exist.
     if !Path::new(&coverage_directory).exists() {
@@ -61,6 +62,18 @@ pub fn get_output_dir() -> Result<PathBuf> {
     Ok(output_dir)
 }
 
+pub fn get_target_dir() -> Result<PathBuf> {
+    let wasmcov_dir = get_wasmcov_dir().unwrap();
+    let output_dir = wasmcov_dir.join("target");
+
+    if !Path::new(&output_dir).exists() {
+        // Create it if it doesn't exist
+        fs::create_dir_all(&output_dir).unwrap();
+    }
+
+    Ok(output_dir)
+}
+
 // This code writes a profile to disk in the profraw format. The profile is
 // written to the profraw directory under the wasmcov directory. The file name
 // is a UUID. The data is passed as a byte vector.
@@ -74,6 +87,37 @@ pub fn write_profraw(data: Vec<u8>) {
 
     let profraw_path = profraw_dir.join(format!("{}.profraw", id));
     fs::write(profraw_path, data).unwrap();
+}
+
+// get all .wasm files in the target directory, copy them and .ll files of the same name to the output directory
+// we are interested only in wasm files that are in the deps folder of the target directory
+// but the deps folder is not a direct child of the target directory - it is likely to be in targetdirectory/wasm32-unknown-unknown/profilename/deps
+// or in targetdirectory/profilename/deps so we need to
+pub fn extract_compiled_artefacts() -> Result<()> {
+    let target_dir = get_target_dir()?;
+    let output_dir = get_output_dir()?;
+
+    // get all .wasm files in a deps directory within the target directory
+    let wasm_files = glob(&format!("{}/**/deps/*.wasm", target_dir.to_str().unwrap()))?;
+    // for each wasm_files, copy the wasm file and the .ll file of the same name to the output directory, handle no ll file as error
+    for wasm_file in wasm_files {
+        let wasm_file = wasm_file?;
+        let wasm_file_name = wasm_file.file_name().unwrap().to_str().unwrap();
+        let wasm_file_stem = wasm_file.file_stem().unwrap().to_str().unwrap();
+        let wasm_file_path = wasm_file.parent().unwrap();
+        let ll_file_path = wasm_file_path.join(format!("{}.ll", wasm_file_stem));
+        if !ll_file_path.exists() {
+            return Err(anyhow::anyhow!(
+                "No .ll file found for wasm file {}",
+                wasm_file_name
+            ));
+        }
+        let wasm_file_output_path = output_dir.join(wasm_file_name);
+        let ll_file_output_path = output_dir.join(format!("{}.ll", wasm_file_stem));
+        fs::copy(wasm_file, wasm_file_output_path)?;
+        fs::copy(ll_file_path, ll_file_output_path)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
