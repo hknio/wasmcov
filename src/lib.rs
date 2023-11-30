@@ -35,13 +35,16 @@ pub fn setup() {
 
     // Set the RUSTFLAGS environment variable.
     // export RUSTFLAGS="-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ll"
-    // This is used to pass arguments to rustc.
     let mut rustflags = String::from(
         "-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ll",
     );
     if llvm_major_version >= String::from("12") {
         rustflags.push_str(" -Zinstrument-coverage-note");
     }
+
+    // Add "-C lto=no" to disable LTO.
+    rustflags.push_str(" -C lto=no");
+
     println!("Setting RUSTFLAGS={}", rustflags);
     std::env::set_var("RUSTFLAGS", rustflags);
 
