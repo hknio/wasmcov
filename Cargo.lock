@@ -323,17 +323,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2275f18819641850fa26c89acc84d465c1bf91ce57bc2748b28c420473352f64"
 dependencies = [
  "clap_builder",
- "clap_derive",
-]
-
-[[package]]
-name = "clap-cargo"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38ae55615695e768a76899c8411b4ebacfbe525e964f94fd24f0007b10b45cd3"
-dependencies = [
- "anstyle",
- "clap",
 ]
 
 [[package]]
@@ -346,18 +335,6 @@ dependencies = [
  "anstyle",
  "clap_lex",
  "strsim",
-]
-
-[[package]]
-name = "clap_derive"
-version = "4.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf9804afaaf59a91e75b022a30fb7229a7901f60c755489cc61c9b423b836442"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.39",
 ]
 
 [[package]]
@@ -1610,7 +1587,6 @@ version = "0.0.2"
 dependencies = [
  "anyhow",
  "clap",
- "clap-cargo",
  "glob",
  "near-sdk",
  "regex",
