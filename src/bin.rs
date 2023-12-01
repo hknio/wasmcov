@@ -1,9 +1,32 @@
-use wasmcov::llvm::{verify_tooling, VerifyToolingResult};
+use clap::{arg, Arg};
+use wasmcov::{finalize, post_build, setup};
 
 fn main() {
     let wasmcov = clap::command!("wasmcov")
         .subcommand_required(true)
-        .subcommand(clap::command!("verify-tooling").about("Verify tooling is installed"));
+        .subcommand(
+            clap::command!("setup")
+            .about("Setup wasmcov, including a check for the required version of LLVM, environment variables, wasmcov directories etc.")
+            // TODO: add in future version
+            // .arg(
+            //     arg!("--wasmcov-dir -d")
+            //         .help("Specify the version of LLVM to use")
+            //         .default_value("12.0.0")
+            // )
+        )
+        .subcommand(
+            clap::command!("post-build")
+            .about("Used after the build step to provide a path for the compiled WASM binary with coverage instrumentation.")
+        )
+        .subcommand(
+            clap::command!("finalize")
+            .about("Used after the build step to finalize the coverage data. Merges the coverage data, modifies all needed compiled artefacts. ")
+            .arg(
+                arg!("--wasmcov-dir -d")
+                    .help("Specify the version of LLVM to use")
+                    .default_value("12.0.0")
+            )
+        );
 
     let cmd = clap::Command::new("cargo")
         .bin_name("cargo")
@@ -17,23 +40,14 @@ fn main() {
     // Should print help if no subcommand is provided to wasmcov
 
     match matches.subcommand().unwrap() {
-        ("verify-tooling", _) => {
-            println!("Checking if tooling is installed...");
-            let result = verify_tooling();
-            match result {
-                Ok(VerifyToolingResult {
-                    is_nightly,
-                    llvm_major_version,
-                }) => {
-                    println!("Tooling is installed!");
-                    println!("is_nightly: {}", is_nightly);
-                    println!("llvm_major_version: {}", llvm_major_version);
-                }
-                Err(e) => {
-                    println!("Error: {}", e);
-                }
-            }
+        // Takes wasmcov_dir argument
+        ("setup", _) => {
+            setup();
         }
+        ("finalize", _) => {
+            finalize();
+        }
+        ("post-build", _) => post_build(),
         _ => unreachable!("clap should ensure we don't get here"),
     }
 }

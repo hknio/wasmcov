@@ -83,6 +83,20 @@ pub fn finalize() {
         .expect("Failed to generate report");
 }
 
+// Find the path to the compiled WASM binary with coverage instrumentation.
+pub fn post_build() {
+    let target_dir = dir::get_target_dir().expect("Failed to get target directory");
+    let wasm_files = glob::glob(target_dir.join("**/deps/*.wasm").to_str().unwrap())
+        .expect("Failed to get wasm files")
+        .collect::<Vec<_>>();
+
+    println!("Found {} wasm compiles", wasm_files.len());
+    // Print the path to all the wasm files found}
+    for wasm_file in wasm_files {
+        println!("{}", wasm_file.unwrap().to_str().unwrap());
+    }
+}
+
 // Blockchain-specific modules.
 #[cfg(feature = "near")]
 pub mod near;
