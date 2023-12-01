@@ -49,7 +49,7 @@ pub struct VerifyToolingResult {
 }
 
 pub fn verify_tooling() -> Result<VerifyToolingResult> {
-    let (mut is_nightly, mut llvm_major_version) = check_rustc_version()?;
+    let (is_nightly, llvm_major_version) = check_rustc_version()?;
 
     check_wasm_target(is_nightly)?;
 

@@ -75,11 +75,11 @@ pub fn finalize() {
     if object_files.len() > 1 {
         panic!("More than one object file found in the output directory. We don't know which one to use.");
     }
-    if object_files.len() == 0 {
+    if object_files.is_empty() {
         panic!("No object file found in the output directory.");
     }
     let object_file: &std::path::PathBuf = object_files[0].as_ref().unwrap();
-    report::generate_coverage_report(&object_file, &llvm_major_version)
+    report::generate_coverage_report(object_file, &llvm_major_version)
         .expect("Failed to generate report");
 }
 

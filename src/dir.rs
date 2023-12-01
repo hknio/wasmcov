@@ -13,12 +13,12 @@ pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) {
     let coverage_directory = wasmcov_dir.unwrap_or(default_directory);
 
     // Set the directory that wasm-cov will store coverage data in.
-    env::set_var("WASMCOV_DIR", &coverage_directory);
-    env::set_var("CARGO_TARGET_DIR", &coverage_directory.join("target"));
+    env::set_var("WASMCOV_DIR", coverage_directory);
+    env::set_var("CARGO_TARGET_DIR", coverage_directory.join("target"));
 
     // Create the coverage directory if it does not exist.
     if !Path::new(&coverage_directory).exists() {
-        fs::create_dir_all(&coverage_directory).unwrap();
+        fs::create_dir_all(coverage_directory).unwrap();
     }
 }
 

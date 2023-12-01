@@ -5,8 +5,8 @@ use regex::Regex;
 use std::fs::File;
 use std::io::{Read, Write};
 
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::{Path};
+
 
 pub(crate) fn merge_profraw_to_profdata(llvm_major_version: &str) -> Result<()> {
     let profraw_dir = get_profraw_dir()?;
@@ -36,7 +36,7 @@ pub(crate) fn modify_ll_files() -> Result<()> {
                 let mut ll_contents = String::new();
 
                 File::open(&path)
-                    .expect(&format!("Failed to open LL file {:?}.", path))
+                    .unwrap_or_else(|_| panic!("Failed to open LL file {:?}.", path))
                     .read_to_string(&mut ll_contents)?;
 
                 let modified_ll_contents = Regex::new(r"(?ms)^(define[^\n]*\n).*?^}\s*$")
@@ -45,7 +45,7 @@ pub(crate) fn modify_ll_files() -> Result<()> {
                     .to_string();
 
                 File::create(&path)
-                    .expect(&format!("Failed to open LL file {:?}", path))
+                    .unwrap_or_else(|_| panic!("Failed to open LL file {:?}", path))
                     .write_all(modified_ll_contents.as_bytes())?;
             }
             Err(e) => println!("{:?}", e),
@@ -64,7 +64,7 @@ pub(crate) fn generate_object_file(llvm_major_version: &str) -> Result<(), anyho
             Ok(path) => {
                 let name = path.file_stem().unwrap().to_str().unwrap();
 
-                let output = run_command(
+                let _output = run_command(
                     &format!("clang-{}", llvm_major_version),
                     &[
                         // name.ll is the input file
@@ -91,7 +91,7 @@ pub(crate) fn generate_coverage_report(
     let coverage_report_path = get_wasmcov_dir()?.join("coverage-report");
     let object_file_path = object_file;
 
-    let output = run_command(
+    let _output = run_command(
         &format!("llvm-cov-{}", llvm_major_version),
         &[
             "show",

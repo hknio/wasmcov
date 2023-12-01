@@ -1,4 +1,4 @@
-use clap::{arg, Arg};
+use clap::{arg};
 use wasmcov::{finalize, post_build, setup};
 
 fn main() {
