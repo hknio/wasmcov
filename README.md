@@ -22,7 +22,7 @@ cargo install wasmcov
 
 To incorporate code coverage instrumentation into your WASM binary, utilize the `capture_coverage` utility. This functionality streamlines LLVM instrumentation coverage for Rust projects. Here’s a step-by-step guide:
 
-1. Integrate the following function into your code:
+### Integrate the following function into your code:
 
 ```rust
 #[no_mangle]
@@ -33,7 +33,7 @@ unsafe extern "C" fn generate_coverage() {
 }
 ```
 
-2. Automate coverage data generation
+### Automate coverage data generation
 
 Automating coverage data generation post-execution is critical. Manually inserting calls to `generate_coverage` for each function is impractical. Implementation can vary depending on your platform and might pose challenges when execution encounters failures, such as panics.
 
@@ -41,7 +41,7 @@ For instance, modify the function responsible for invoking WASM functions to cal
 
 Find examples of such implementations for different platforms [here](https://github.com/hknio/wasmcov-near-sdk-rs/compare/hknio:wasmcov-near-sdk-rs:55020df8e99057815685b75b70955cb79a9dfe28...wasmcov) and [here](https://github.com/radixdlt/radixdlt-scrypto/pull/1640/files).
 
-3. Managing coverage data in tests
+### Managing coverage data in tests
 
 After extracting the coverage data (via logs, storage, file writes, etc.), invoke `wasmcov::write_profraw(coverage_data)` to save it to a `.profraw` file. This file becomes the basis for generating a `.profdata` file.
 
