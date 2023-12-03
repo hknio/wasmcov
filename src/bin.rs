@@ -51,7 +51,9 @@ fn main() {
         ("finalize", _) => {
             finalize();
         }
-        ("post-build", _) => post_build(),
+        ("post-build", _) => {
+            let _ = post_build();
+        }
         _ => unreachable!("clap should ensure we don't get here"),
     }
 }

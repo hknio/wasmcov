@@ -89,17 +89,27 @@ pub fn finalize() {
 }
 
 // Find the path to the compiled WASM binary with coverage instrumentation.
-pub fn post_build() {
+pub fn post_build() -> Vec<PathBuf> {
     let target_dir = dir::get_target_dir().expect("Failed to get target directory");
     let wasm_files = glob::glob(target_dir.join("**/deps/*.wasm").to_str().unwrap())
         .expect("Failed to get wasm files")
         .collect::<Vec<_>>();
 
     println!("Found {} wasm compiles", wasm_files.len());
-    // Print the path to all the wasm files found}
-    for wasm_file in wasm_files {
-        println!("{}", wasm_file.unwrap().to_str().unwrap());
+
+    // Unwrap all wasm_files from Result<PathBuf> to PathBuf
+    let wasm_files = wasm_files
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect::<Vec<PathBuf>>();
+
+    // Print all wasm_file paths
+    for wasm_file in &wasm_files {
+        println!("{}", wasm_file.display());
     }
+
+    // Return wasm_files
+    wasm_files
 }
 
 // Blockchain-specific modules.
