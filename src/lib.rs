@@ -1,12 +1,13 @@
 use anyhow::anyhow;
 use anyhow::Result;
+use std::path::PathBuf;
 use std::process::Command;
 
 pub mod dir;
 pub mod llvm;
 pub mod report;
 
-fn run_command(command: &str, args: &[&str]) -> Result<String> {
+pub fn run_command(command: &str, args: &[&str]) -> Result<String> {
     let output = Command::new(command).args(args).output()?;
 
     if !output.status.success() {
@@ -20,11 +21,11 @@ fn run_command(command: &str, args: &[&str]) -> Result<String> {
     String::from_utf8(output.stdout).map_err(|_| anyhow!("Failed to read command output"))
 }
 
-pub fn setup() {
+pub fn setup(wasmcov_dir: Option<&PathBuf>) {
     // Verify tooling is installed.
     let llvm::VerifyToolingResult {
         is_nightly,
-        llvm_major_version,
+        llvm_major_version: _,
     } = llvm::verify_tooling().expect("Failed to verify tooling");
 
     // If we are not on nightly, we need to set the RUSTC_BOOTSTRAP environment variable.
@@ -34,13 +35,10 @@ pub fn setup() {
     }
 
     // Set the RUSTFLAGS environment variable.
-    // export RUSTFLAGS="-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ll"
+    // export RUSTFLAGS="-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ir"
     let mut rustflags = String::from(
-        "-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ll",
+        "-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ir",
     );
-    if llvm_major_version >= String::from("12") {
-        rustflags.push_str(" -Zinstrument-coverage-note");
-    }
 
     // Add "-C lto=no" to disable LTO.
     rustflags.push_str(" -C lto=no");
@@ -49,7 +47,7 @@ pub fn setup() {
     std::env::set_var("RUSTFLAGS", rustflags);
 
     // Set wasmcov directory.
-    dir::set_wasmcov_dir(None);
+    dir::set_wasmcov_dir(wasmcov_dir);
 }
 
 pub fn finalize() {

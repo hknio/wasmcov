@@ -77,7 +77,7 @@ Prepare your code for coverage analysis by building it with coverage instrumenta
 
 ```bash
 export RUSTC_BOOTSTRAP=1
-export RUSTFLAGS="-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ll"
+export RUSTFLAGS="-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ir"
 
 rustup target add wasm32-unknown-unknown
 

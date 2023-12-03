@@ -1,26 +1,27 @@
-use clap::{arg};
+use std::path::PathBuf;
+
+use clap::{arg, command};
 use wasmcov::{finalize, post_build, setup};
 
 fn main() {
     let wasmcov = clap::command!("wasmcov")
         .subcommand_required(true)
         .subcommand(
-            clap::command!("setup")
+            command!("setup")
             .about("Setup wasmcov, including a check for the required version of LLVM, environment variables, wasmcov directories etc.")
-            // TODO: add in future version
-            // .arg(
-            //     arg!("--wasmcov-dir -d")
-            //         .help("Specify the version of LLVM to use")
-            //         .default_value("12.0.0")
-            // )
+            .arg(
+                arg!("--wasmcov-dir -d")
+                    .help("Specify the version of LLVM to use")
+                    .default_value(None)
+            )
         )
         .subcommand(
-            clap::command!("post-build")
+            command!("post-build")
             .about("Used after the build step to provide a path for the compiled WASM binary with coverage instrumentation.")
         )
         .subcommand(
-            clap::command!("finalize")
-            .about("Used after the build step to finalize the coverage data. Merges the coverage data, modifies all needed compiled artefacts. ")
+            command!("finalize")
+            .about("Finalizes the creation of coverage data after tests. Merges the coverage data, modifies all needed compiled artefacts. ")
             .arg(
                 arg!("--wasmcov-dir -d")
                     .help("Specify the version of LLVM to use")
@@ -41,8 +42,8 @@ fn main() {
 
     match matches.subcommand().unwrap() {
         // Takes wasmcov_dir argument
-        ("setup", _) => {
-            setup();
+        ("setup", args) => {
+            setup(args.get_one::<PathBuf>("wasmcov-dir"));
         }
         ("finalize", _) => {
             finalize();
