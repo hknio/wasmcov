@@ -1,6 +1,6 @@
 # Wasmcov
 
-Wasmcov is a Rust library and accompanying binary that provides a set of helpers for coverage analysis of WebAssembly (Wasm) modules. It allows you to collect and analyze code coverage data when running Wasm modules. Wasmcov is designed to be flexible and easy to integrate into your Wasm projects, making it a powerful tool for improving the quality of your Wasm applications.
+Wasmcov is a Rust library and accompanying binary that provide a set of helpers for coverage analysis of WebAssembly (Wasm) modules. It allows you to collect and analyze code coverage data when running Wasm modules. Wasmcov is designed to be flexible and easy to integrate into your Wasm projects, making it a powerful tool for improving the quality of your Wasm applications.
 
 ## Installation
 
@@ -12,7 +12,7 @@ version = "0.1"
 features = ["near"]
 ```
 
-Or to use the binary directly, install it using `cargo install`:
+Or, to use the binary directly, install it using `cargo install`:
 
 ```bash
 cargo install wasmcov
@@ -33,7 +33,7 @@ unsafe extern "C" fn generate_coverage() {
 }
 ```
 
-2. Setup automatic coverage data generation
+2. Set up automatic coverage data generation
 
 Generating coverage data automatically after execution is crucial. Manually adding calls to `generate_coverage` for each function is impractical. Implementing this can vary based on your platform and may be challenging when execution fails, such as during panics.
 
@@ -43,11 +43,11 @@ Examples of implementation for different platforms can be found [here](https://g
 
 3. Handle coverage data writing in tests
 
-Once you've extracted the coverage data (either through logs, storage, file writes etc) you should invoke `wasmcov::write_profraw(coverage_data)` to write the coverage data to a `.profraw` file. This file can then be used to generate a `.profdata` file. 
+Once you've extracted the coverage data (either through logs, storage, file writes etc.), you should invoke `wasmcov::write_profraw(coverage_data)` to write the coverage data to a `.profraw` file. This file can then be used to generate a `.profdata` file. 
 
 **Once the coverage data is passed to `wasmcov::write_profraw`, everything else is automatically handled by the library.**
 
-An example of the flow was implemented for NEAR protocol - the coverage data is passed through logs:
+An example of the flow was implemented for the NEAR protocol - the coverage data is passed through logs:
 
 ```rust
 let mut coverage = vec![];
@@ -92,7 +92,7 @@ cargo wasmcov finalize
 
 ## Usage (library)
 
-Wasmcov is called in rust code in the following order
+Wasmcov is called in Rust code in the following order:
 
 ```rust
 wasmcov::setup(None); // Or path to wasmcov directory
@@ -122,6 +122,6 @@ This repository is currently maintained by [Noah Jelich](https://www.linkedin.co
 
 ## Contributing
 
-Contributions are welcome! Use the `cargo build` command to build the project. Note: when testing, make sure to disable paralleliism by using the `--test-threads=1` flag. This is required to ensure that environment variables are not overwritten by other tests.
+Contributions are welcome! Use the `cargo build` command to build the project. Note: when testing, make sure to disable parallelism by using the `--test-threads=1` flag. This is required to ensure that environment variables are not overwritten by other tests.
 
 For ease of use, you can use the shorthands `make build` and `make test` to build and test the project, respectively.
