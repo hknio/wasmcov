@@ -71,7 +71,7 @@ let result = manager
     .await?
     .into_result()?;
 
-wasmcov::near::near_coverage(result.logs());
+wasmcov::near::near_coverage(&result.logs());
 ```
 
 ## Usage (binary)

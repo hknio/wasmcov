@@ -5,8 +5,7 @@ use regex::Regex;
 use std::fs::File;
 use std::io::{Read, Write};
 
-use std::path::{Path};
-
+use std::path::Path;
 
 pub(crate) fn merge_profraw_to_profdata(llvm_major_version: &str) -> Result<()> {
     let profraw_dir = get_profraw_dir()?;
