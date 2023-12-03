@@ -1,7 +1,6 @@
 # Site settings
 title: Wasmcov
-description: A Rust library designed to solve the long-lasting problem of
-measuring code coverage in WebAssembly modules.
+description: A Rust library designed to solve the long-lasting problem of measuring code coverage in WebAssembly modules.
 
 # Theme settings
 theme: jekyll-theme-cayman
