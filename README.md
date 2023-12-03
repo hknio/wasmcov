@@ -64,7 +64,7 @@ Then, after a function call, retrieve it using `wasmcov::near::near_coverage()`:
 
 ```rust
 let result = manager
-    .call(self.id(), "function_name")
+    .call(self.id(),"function_name")
     .args_json(args)
     .deposit(1)
     .transact()
