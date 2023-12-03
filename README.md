@@ -18,7 +18,68 @@ Or to use the binary directly, install it using `cargo install`:
 cargo install wasmcov
 ```
 
-You will also need to modify your WASM runtime, this is highly specific to your runtime. See the [docs](docs/README.md) for more information.
+## Coverage Data Generation
+
+To add code coverage instrumentation to your WASM binary, you can use the `minicov` library, which facilitates LLVM instrumentation coverage for Rust projects. Here's how to do it:
+
+1. Include `minicov` in your project's dependencies:
+
+   ```rust
+   [dependencies]
+   minicov = "0.3"
+   ```
+
+2. Add the following function to your code:
+
+   ```rust
+   #[no_mangle]
+   unsafe extern "C" fn generate_coverage() {
+       let mut coverage = vec![];
+       minicov::capture_coverage(&mut coverage).unwrap();
+       // Call a function (e.g., `your_custom_save_coverage_function`) to save the coverage data or use `println!` for debugging.
+   }
+   ```
+
+3. Setup automatic coverage data generation
+
+Generating coverage data automatically after execution is crucial. Manually adding calls to `generate_coverage` for each function is impractical. Implementing this can vary based on your platform and may be challenging when execution fails, such as during panics.
+
+For example, you can modify the function responsible for invoking WASM functions to call `generate_coverage` after each function call. Ensure the modification is platform-independent.
+
+Examples of implementation for different platforms can be found [here](https://github.com/hknio/wasmcov-near-sdk-rs/compare/hknio:wasmcov-near-sdk-rs:55020df8e99057815685b75b70955cb79a9dfe28...wasmcov) and [here](https://github.com/radixdlt/radixdlt-scrypto/pull/1640/files).
+
+4. Handle coverage data writing 
+
+Once you've extracted the coverage data (either through logs, storage, file writes etc) you should invoke `wasmcov::write_profraw(coverage_data)` to write the coverage data to a `.profraw` file. This file can then be used to generate a `.profdata` file. 
+
+**Once the coverage data is passed to `wasmcov::write_profraw`, everything else is automatically handled by the library.**
+
+An example of the flow was implemented for NEAR protocol - the coverage data is passed through logs:
+
+```rust
+     let mut coverage = vec![];
+            unsafe {
+                // Note that this function is not thread-safe! Use a lock if needed.
+                minicov::capture_coverage(&mut coverage).unwrap();
+            };
+            let base64_string = near_sdk::base64::encode(coverage);
+
+            ::near_sdk::env::log_str(&base64_string);
+```
+
+And then picked up using `wasmcov::near::near_coverage()` after a function call:
+
+```rust
+   let result = manager
+            .call(self.id(), "register_product")
+            .args_json(args)
+            .deposit(1)
+            .transact()
+            .await?
+            .into_result()?;
+
+    wasmcov::near::near_coverage(result.logs());
+```
 
 ## Usage (binary)
 

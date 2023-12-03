@@ -44,6 +44,8 @@ Generating coverage data automatically after execution is crucial. Manually addi
 
 For example, you can modify the function responsible for invoking WASM functions to call `generate_coverage` after each function call. Ensure the modification is platform-independent.
 
+Examples of implementation for different platforms can be found [here](https://github.com/hknio/wasmcov-near-sdk-rs/compare/hknio:wasmcov-near-sdk-rs:55020df8e99057815685b75b70955cb79a9dfe28...wasmcov) and [here](https://github.com/radixdlt/radixdlt-scrypto/pull/1640/files).
+
 ## Step 3: Parsing Raw Coverage Data
 
 Executing your code will result in one or more `.profraw` files. To consolidate these into a single `.profdata` file, use the following command:
