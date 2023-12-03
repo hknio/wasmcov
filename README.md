@@ -24,14 +24,14 @@ To add code coverage instrumentation to your WASM binary, you can use the `captu
 
 1. Add the following function to your code:
 
-   ```rust
-   #[no_mangle]
-   unsafe extern "C" fn generate_coverage() {
-       let mut coverage = vec![];
-       wasmcov::capture_coverage(&mut coverage).unwrap();
-       // Call a function (e.g., `your_custom_save_coverage_function`) to save the coverage data or use `println!` for debugging.
-   }
-   ```
+```rust
+#[no_mangle]
+unsafe extern "C" fn generate_coverage() {
+    let mut coverage = vec![];
+    wasmcov::capture_coverage(&mut coverage).unwrap();
+    // Call a function (e.g., `your_custom_save_coverage_function`) to save the coverage data or use `println!` for debugging.
+}
+```
 
 2. Setup automatic coverage data generation
 
@@ -50,28 +50,28 @@ Once you've extracted the coverage data (either through logs, storage, file writ
 An example of the flow was implemented for NEAR protocol - the coverage data is passed through logs:
 
 ```rust
-     let mut coverage = vec![];
-            unsafe {
-                // Note that this function is not thread-safe! Use a lock if needed.
-                minicov::capture_coverage(&mut coverage).unwrap();
-            };
-            let base64_string = near_sdk::base64::encode(coverage);
+let mut coverage = vec![];
+unsafe {
+    // Note that this function is not thread-safe! Use a lock if needed.
+    minicov::capture_coverage(&mut coverage).unwrap();
+};
+let base64_string = near_sdk::base64::encode(coverage);
 
-            ::near_sdk::env::log_str(&base64_string);
+::near_sdk::env::log_str(&base64_string);
 ```
 
 And then picked up using `wasmcov::near::near_coverage()` after a function call:
 
 ```rust
-   let result = manager
-            .call(self.id(), "function_name")
-            .args_json(args)
-            .deposit(1)
-            .transact()
-            .await?
-            .into_result()?;
+let result = manager
+    .call(self.id(), "function_name")
+    .args_json(args)
+    .deposit(1)
+    .transact()
+    .await?
+    .into_result()?;
 
-    wasmcov::near::near_coverage(result.logs());
+wasmcov::near::near_coverage(result.logs());
 ```
 
 ## Usage (binary)
