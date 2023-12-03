@@ -1,0 +1,23 @@
+# Site settings
+title: My Awesome Site
+description: This is my awesome site
+
+# Theme settings
+theme: jekyll-theme-minimal
+
+# Breadcrumbs
+breadcrumbs: true
+
+# Default settings for posts
+defaults:
+ # _posts
+ - scope:
+    path: ""
+    type: posts
+  values:
+    layout: single
+    author_profile: true
+    read_time: true
+    comments: true
+    share: true
+    related: true

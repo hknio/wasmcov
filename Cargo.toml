@@ -1,6 +1,6 @@
 [package]
 name = "wasmcov"
-version = "0.0.2"
+version = "0.0.6"
 edition = "2021"
 authors = ["Noah Jelich <n.jelich@hacken.io>", "Bartosz Barwikowski <b.barwikowski@hacken.io>"]
 description = "A set of helpers for coverage of wasm modules"
@@ -23,9 +23,21 @@ exclude = [
 name = "wasmcov"
 path = "src/lib.rs"
 
+[[bin]]
+name = "cargo-wasmcov"
+path = "src/bin.rs"
+
 [dependencies]
 uuid = { version = "1.5.0", features = ["v4"] }
+regex = { version = "1.5.5" }
+near-sdk = { version = "4.1.1", optional = true }
+anyhow = { version = "1.0.75" }
+clap = { version = "4.4.8", features = ["cargo"] }
+glob = { version = "0.3.1" }
 
 [dev-dependencies]
 tempfile = "3.8.1"
+
+[features]
+near = ["dep:near-sdk"]
 

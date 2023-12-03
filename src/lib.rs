@@ -1,170 +1,117 @@
-use std::env;
-use std::fs;
-use std::io;
-use std::io::Result;
-use std::path::Path;
+use anyhow::anyhow;
+use anyhow::Result;
 use std::path::PathBuf;
-use uuid::Uuid;
+use std::process::Command;
 
-pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) {
-    // Set the directory used to store coverage data.
-    // If n --o directory is specified, use the default directory.
-    let default_directory = &env::current_dir().unwrap().join("wasmcov");
-    let coverage_directory = wasmcov_dir.unwrap_or(default_directory);
+pub mod dir;
+pub mod llvm;
+pub mod report;
 
-    // Set the directory that wasm-cov will store coverage data in.
-    env::set_var("WASMCOV_DIR", &coverage_directory);
+pub fn run_command(command: &str, args: &[&str]) -> Result<String> {
+    let output = Command::new(command).args(args).output()?;
 
-    // Create the coverage directory if it does not exist.
-    if !Path::new(&coverage_directory).exists() {
-        fs::create_dir_all(&coverage_directory).unwrap();
-    }
-
-    // If bin directory does not exist, create it
-    if !Path::new(&coverage_directory.join("bin")).exists() {
-        fs::create_dir_all(&coverage_directory.join("bin")).unwrap();
-    }
-
-    // If profraw directory does not exist, create it
-    if !Path::new(&coverage_directory.join("profraw")).exists() {
-        fs::create_dir_all(&coverage_directory.join("profraw")).unwrap();
-    }
-
-    // Removed due to crate size limits.
-    // Include neard binar from bin/neard and write it to WASMCOV_DIR/bin/neard
-    // let neard_bin = include_bytes!("../bin/neard");
-    // let neard_bin_path = coverage_directory.join("bin").join("neard");
-    // fs::write(neard_bin_path, neard_bin).expect("Failed to create neard binary");
-}
-
-// Get the coverage directory from the WASMCOV_DIR environment variable.
-// If that variable is not set, use the current directory.
-pub fn get_wasmcov_dir() -> Result<PathBuf> {
-    let default_directory = env::current_dir().unwrap().join("wasmcov");
-    let coverage_directory = env::var("WASMCOV_DIR")
-        .map(PathBuf::from)
-        .unwrap_or(default_directory);
-
-    if !Path::new(&coverage_directory).exists() {
-        // Throw an error if the directory doesn't exist
-        return Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            format!(
-                "Coverage directory not found at {}",
-                coverage_directory.display()
-            ),
+    if !output.status.success() {
+        return Err(anyhow!(
+            "Command {} failed with status code {}: {}",
+            command,
+            output.status.code().unwrap_or(-1),
+            String::from_utf8(output.stderr)?
         ));
     }
-
-    Ok(coverage_directory)
+    String::from_utf8(output.stdout).map_err(|_| anyhow!("Failed to read command output"))
 }
 
-// This code writes a profile to disk in the profraw format. The profile is
-// written to the profraw directory under the wasmcov directory. The file name
-// is a UUID. The data is passed as a byte vector.
-pub fn write_profraw(data: Vec<u8>) {
-    let id = Uuid::new_v4();
+pub fn setup(wasmcov_dir: Option<&PathBuf>) -> Result<String> {
+    // Verify tooling is installed.
+    let llvm::VerifyToolingResult {
+        is_nightly,
+        llvm_major_version: _,
+    } = llvm::verify_tooling().expect("Failed to verify tooling");
 
-    let wasmcov_dir = get_wasmcov_dir().unwrap();
-    let profraw_dir = wasmcov_dir.join("profraw");
-    if !Path::new(&profraw_dir).exists() {
-        fs::create_dir_all(&profraw_dir).unwrap();
+    let mut env_string = dir::set_wasmcov_dir(wasmcov_dir)?;
+
+    // If we are not on nightly, we need to set the RUSTC_BOOTSTRAP environment variable.
+    if !is_nightly {
+        // Add to env string
+        env_string.push_str("; export RUSTC_BOOTSTRAP=1");
+        std::env::set_var("RUSTC_BOOTSTRAP", "1");
     }
 
-    let profraw_path = profraw_dir.join(format!("{}.profraw", id));
-    fs::write(profraw_path, data).unwrap();
+    // Set the RUSTFLAGS environment variable.
+    // export RUSTFLAGS="-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ir"
+    let mut rustflags = String::from(
+        "-Cinstrument-coverage -Zno-profiler-runtime -Zlocation-detail=none --emit=llvm-ir",
+    );
+
+    // Add "-C lto=no" to disable LTO.
+    rustflags.push_str(" -Clto=no");
+
+    std::env::set_var("RUSTFLAGS", rustflags);
+
+    // Combine the environment string with the RUSTFLAGS environment variable.
+    env_string.push_str(&format!(
+        "; export RUSTFLAGS=\"{}\"",
+        std::env::var("RUSTFLAGS").unwrap()
+    ));
+
+    Ok(env_string)
 }
 
-// This function is called on NEAR call or view logs, which can be fetched using the logs()
-// function on either an ExecutionResult or similar objects produced by near-workspaces/src/result.rs
-// This call needs to be added to every function call definitiion.
+pub fn finalize() {
+    // Process all the build artefacts extract_compiled_artefacts
+    dir::extract_compiled_artefacts().expect("Failed to extract compiled artefacts");
+
+    let (_, llvm_major_version) =
+        llvm::check_rustc_version().expect("Failed to check rustc version");
+
+    // Modify ll files and generate object file
+    report::modify_ll_files().expect("Failed to modify LL files");
+    report::generate_object_file(&llvm_major_version).expect("Failed to generate object file");
+
+    // Merge profraw files to profdata.
+    report::merge_profraw_to_profdata(&llvm_major_version)
+        .expect("Failed to merge profraw to profdata");
+
+    // Generate report. If there is more than one .o file, throw an error, because we don't know which one to use.
+    let output_dir = dir::get_output_dir().expect("Failed to get output directory");
+    let object_files = glob::glob(output_dir.join("*.o").to_str().unwrap())
+        .expect("Failed to get object files")
+        .collect::<Vec<_>>();
+    if object_files.len() > 1 {
+        panic!("More than one object file found in the output directory. We don't know which one to use.");
+    }
+    if object_files.is_empty() {
+        panic!("No object file found in the output directory.");
+    }
+    let object_file: &std::path::PathBuf = object_files[0].as_ref().unwrap();
+    report::generate_coverage_report(object_file, &llvm_major_version)
+        .expect("Failed to generate report");
+}
+
+// Find the path to the compiled WASM binary with coverage instrumentation.
+pub fn post_build() -> Vec<PathBuf> {
+    let target_dir = dir::get_target_dir().expect("Failed to get target directory");
+    let wasm_files = glob::glob(target_dir.join("**/deps/*.wasm").to_str().unwrap())
+        .expect("Failed to get wasm files")
+        .collect::<Vec<_>>();
+
+    println!("Found {} wasm compiles", wasm_files.len());
+
+    // Unwrap all wasm_files from Result<PathBuf> to PathBuf
+    let wasm_files = wasm_files
+        .into_iter()
+        .map(|x| x.unwrap())
+        .collect::<Vec<PathBuf>>();
+
+    // Print all wasm_file paths
+    for wasm_file in &wasm_files {
+        println!("{}", wasm_file.display());
+    }
+
+    // Return wasm_files
+    wasm_files
+}
+
+// Blockchain-specific modules.
 #[cfg(feature = "near")]
-pub fn near_coverage(&logs: Vec<&str>) {
-    let coverage: Vec<u8> = near_sdk::base64::decode(&logs.last().unwrap()).unwrap();
-    write_profraw(coverage);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_set_wasmcov_dir() {
-        // Set the WASMCOV_DIR environment variable to a temporary directory.
-        let temp_dir = tempdir().unwrap();
-        let temp_dir_path = temp_dir.path().to_path_buf();
-        set_wasmcov_dir(Some(&temp_dir_path));
-
-        // Check that the directory exists.
-        let wasmcov_dir = get_wasmcov_dir().unwrap();
-        assert_eq!(&wasmcov_dir, &temp_dir_path);
-
-        // Check that the bin and profraw subdirectories exist.
-        let bin_dir = wasmcov_dir.join("bin");
-        let profraw_dir: PathBuf = wasmcov_dir.join("profraw");
-        assert!(Path::new(&bin_dir).exists());
-        assert!(Path::new(&profraw_dir).exists());
-
-        // Check that the neard binary exists.
-        let neard_bin = wasmcov_dir.join("bin").join("neard");
-        assert!(Path::new(&neard_bin).exists());
-
-        // Clean up.
-        fs::remove_dir_all(temp_dir).unwrap();
-    }
-
-    #[test]
-    fn test_get_wasmcov_dir() {
-        // Set the WASMCOV_DIR environment variable to a temporary directory.
-        let temp_dir = tempdir().unwrap();
-        let temp_dir_path = temp_dir.path().to_path_buf();
-        set_wasmcov_dir(Some(&temp_dir_path));
-
-        // Check that the directory exists.
-        let wasmcov_dir = get_wasmcov_dir().unwrap();
-        assert_eq!(wasmcov_dir, temp_dir_path);
-
-        // Clean up.
-        fs::remove_dir_all(temp_dir).unwrap();
-    }
-
-    #[test]
-    fn test_write_profraw() {
-        // Set the WASMCOV_DIR environment variable to a temporary directory.
-        let temp_dir = tempdir().unwrap();
-        let temp_dir_path = temp_dir.path().to_path_buf();
-        set_wasmcov_dir(Some(&temp_dir_path));
-
-        // Write a profile to disk.
-        let data = vec![1, 2, 3];
-        write_profraw(data);
-
-        // Check that the profile exists.
-        let profraw_dir = temp_dir_path.join("profraw");
-        let profraw_files = fs::read_dir(profraw_dir).unwrap();
-        let profraw_file = profraw_files.into_iter().next().unwrap().unwrap();
-        let profraw_path = profraw_file.path();
-        assert!(Path::new(&profraw_path).exists());
-    }
-
-    #[test]
-    fn test_near_coverage() {
-        // Set the WASMCOV_DIR environment variable to a temporary directory.
-        let temp_dir = tempdir().unwrap();
-        let temp_dir_path = temp_dir.path().to_path_buf();
-        set_wasmcov_dir(Some(&temp_dir_path));
-
-        // Write a profile to disk.
-        let data = vec![1, 2, 3];
-        write_profraw(data);
-
-        // Check that the profile exists.
-        let profraw_dir = temp_dir_path.join("profraw");
-        let profraw_files = fs::read_dir(profraw_dir).unwrap();
-        let profraw_file = profraw_files.into_iter().next().unwrap().unwrap();
-        let profraw_path = profraw_file.path();
-        assert!(Path::new(&profraw_path).exists());
-    }
-}
+pub mod near;
