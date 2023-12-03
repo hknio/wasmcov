@@ -14,6 +14,11 @@ fn main() {
                     .help("Specify the version of LLVM to use")
                     .default_value(None)
             )
+            .arg(
+                arg!("--show-env")
+                    .help("Used to set the environment variables when running in shell. Example: eval $(wasmcov setup --show-env)")
+                    .num_args(0)
+            )
         )
         .subcommand(
             command!("post-build")
@@ -43,7 +48,11 @@ fn main() {
     match matches.subcommand().unwrap() {
         // Takes wasmcov_dir argument
         ("setup", args) => {
-            setup(args.get_one::<PathBuf>("wasmcov-dir"));
+            let result = setup(args.get_one::<PathBuf>("wasmcov-dir"));
+            // If show-env is used, print the environment variables to be used in eval block
+            if args.contains_id("show-env") {
+                println!("{}", result.unwrap());
+            }
         }
         ("finalize", _) => {
             finalize();

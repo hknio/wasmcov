@@ -21,7 +21,7 @@ pub fn run_command(command: &str, args: &[&str]) -> Result<String> {
     String::from_utf8(output.stdout).map_err(|_| anyhow!("Failed to read command output"))
 }
 
-pub fn setup(wasmcov_dir: Option<&PathBuf>) {
+pub fn setup(wasmcov_dir: Option<&PathBuf>) -> Result<String> {
     // Verify tooling is installed.
     let llvm::VerifyToolingResult {
         is_nightly,
@@ -47,7 +47,13 @@ pub fn setup(wasmcov_dir: Option<&PathBuf>) {
     std::env::set_var("RUSTFLAGS", rustflags);
 
     // Set wasmcov directory.
-    dir::set_wasmcov_dir(wasmcov_dir);
+    let env_string = dir::set_wasmcov_dir(wasmcov_dir);
+
+    // Combine the environment string with the RUSTFLAGS environment variable.
+    let rustflags = std::env::var("RUSTFLAGS").unwrap();
+    let env_string = format!("{}; export RUSTFLAGS={}", env_string.unwrap(), rustflags);
+
+    Ok(env_string)
 }
 
 pub fn finalize() {

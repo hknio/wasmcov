@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use anyhow::Result;
 use glob::glob;
 use std::env;
@@ -6,20 +7,32 @@ use std::path::Path;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) {
+pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) -> Result<String> {
     // Set the directory used to store coverage data.
     // If n --o directory is specified, use the default directory.
     let default_directory = &env::current_dir().unwrap().join("wasmcov");
     let coverage_directory = wasmcov_dir.unwrap_or(default_directory);
 
     // Set the directory that wasm-cov will store coverage data in.
+    println!("Setting WASMCOV_DIR={}", coverage_directory.display());
     env::set_var("WASMCOV_DIR", coverage_directory);
+    println!(
+        "Setting CARGO_TARGET_DIR={}",
+        coverage_directory.join("target").display()
+    );
     env::set_var("CARGO_TARGET_DIR", coverage_directory.join("target"));
 
     // Create the coverage directory if it does not exist.
     if !Path::new(&coverage_directory).exists() {
         fs::create_dir_all(coverage_directory).unwrap();
     }
+
+    // Returns a string that can be used to set the environment variables.
+    Ok(format!(
+        "export WASMCOV_DIR={}; export CARGO_TARGET_DIR={}",
+        coverage_directory.display(),
+        coverage_directory.join("target").display()
+    ))
 }
 
 // Get the coverage directory from the WASMCOV_DIR environment variable.

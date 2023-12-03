@@ -1583,7 +1583,7 @@ checksum = "0d046c5d029ba91a1ed14da14dca44b68bf2f124cfbaf741c54151fdb3e0750b"
 
 [[package]]
 name = "wasmcov"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "clap",
