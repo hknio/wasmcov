@@ -8,7 +8,7 @@ Add `wasmcov` as a dependency in your `Cargo.toml`, setting feature flags based 
 
 ```toml
 [dependencies.wasmcov]
-version = "0.0.2"
+version = "0.1"
 features = ["near"]
 ```
 
