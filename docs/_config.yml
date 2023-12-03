@@ -1,23 +1,11 @@
 # Site settings
-title: My Awesome Site
-description: This is my awesome site
+title: Wasmcov
+description: A Rust library designed to solve the long-lasting problem of
+measuring code coverage in WebAssembly modules.
 
 # Theme settings
-theme: jekyll-theme-minimal
+theme: jekyll-theme-cayman
 
 # Breadcrumbs
 breadcrumbs: true
 
-# Default settings for posts
-defaults:
- # _posts
- - scope:
-    path: ""
-    type: posts
-  values:
-    layout: single
-    author_profile: true
-    read_time: true
-    comments: true
-    share: true
-    related: true
