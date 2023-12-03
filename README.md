@@ -20,14 +20,7 @@ cargo install wasmcov
 
 ## Coverage Data Generation
 
-To add code coverage instrumentation to your WASM binary, you can use the `minicov` library, which facilitates LLVM instrumentation coverage for Rust projects. Here's how to do it:
-
-1. Include `minicov` in your project's dependencies:
-
-   ```rust
-   [dependencies]
-   minicov = "0.3"
-   ```
+To add code coverage instrumentation to your WASM binary, you can use the `capture_coverage` utility, which facilitates LLVM instrumentation coverage for Rust projects. Here's how to do it:
 
 2. Add the following function to your code:
 
@@ -35,7 +28,7 @@ To add code coverage instrumentation to your WASM binary, you can use the `minic
    #[no_mangle]
    unsafe extern "C" fn generate_coverage() {
        let mut coverage = vec![];
-       minicov::capture_coverage(&mut coverage).unwrap();
+       wasmcov::capture_coverage(&mut coverage).unwrap();
        // Call a function (e.g., `your_custom_save_coverage_function`) to save the coverage data or use `println!` for debugging.
    }
    ```

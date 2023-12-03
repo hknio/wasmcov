@@ -7,6 +7,8 @@ pub mod dir;
 pub mod llvm;
 pub mod report;
 
+pub use minicov::capture_coverage;
+
 pub fn run_command(command: &str, args: &[&str]) -> Result<String> {
     let output = Command::new(command).args(args).output()?;
 
