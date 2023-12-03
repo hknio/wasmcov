@@ -64,7 +64,7 @@ And then picked up using `wasmcov::near::near_coverage()` after a function call:
 
 ```rust
    let result = manager
-            .call(self.id(), "register_product")
+            .call(self.id(), "function_name")
             .args_json(args)
             .deposit(1)
             .transact()
