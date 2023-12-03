@@ -28,9 +28,12 @@ pub fn setup(wasmcov_dir: Option<&PathBuf>) -> Result<String> {
         llvm_major_version: _,
     } = llvm::verify_tooling().expect("Failed to verify tooling");
 
+    let mut env_string = dir::set_wasmcov_dir(wasmcov_dir)?;
+
     // If we are not on nightly, we need to set the RUSTC_BOOTSTRAP environment variable.
     if !is_nightly {
-        println!("Setting RUSTC_BOOTSTRAP=1");
+        // Add to env string
+        env_string.push_str("; export RUSTC_BOOTSTRAP=1");
         std::env::set_var("RUSTC_BOOTSTRAP", "1");
     }
 
@@ -41,17 +44,15 @@ pub fn setup(wasmcov_dir: Option<&PathBuf>) -> Result<String> {
     );
 
     // Add "-C lto=no" to disable LTO.
-    rustflags.push_str(" -C lto=no");
+    rustflags.push_str(" -Clto=no");
 
-    println!("Setting RUSTFLAGS={}", rustflags);
     std::env::set_var("RUSTFLAGS", rustflags);
 
-    // Set wasmcov directory.
-    let env_string = dir::set_wasmcov_dir(wasmcov_dir);
-
     // Combine the environment string with the RUSTFLAGS environment variable.
-    let rustflags = std::env::var("RUSTFLAGS").unwrap();
-    let env_string = format!("{}; export RUSTFLAGS={}", env_string.unwrap(), rustflags);
+    env_string.push_str(&format!(
+        "; export RUSTFLAGS=\"{}\"",
+        std::env::var("RUSTFLAGS").unwrap()
+    ));
 
     Ok(env_string)
 }

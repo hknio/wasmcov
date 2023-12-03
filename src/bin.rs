@@ -8,17 +8,13 @@ fn main() {
         .subcommand_required(true)
         .subcommand(
             command!("setup")
-            .about("Setup wasmcov, including a check for the required version of LLVM, environment variables, wasmcov directories etc.")
-            .arg(
-                arg!("--wasmcov-dir -d")
-                    .help("Specify the version of LLVM to use")
-                    .default_value(None)
-            )
-            .arg(
-                arg!("--show-env")
-                    .help("Used to set the environment variables when running in shell. Example: eval $(wasmcov setup --show-env)")
-                    .num_args(0)
-            )
+            .about("Setup wasmcov, including a check for the required version of LLVM, environment variables, wasmcov directories etc.\nNeeds to be ran inside an eval block eval $(cargo wasmcov setup)")
+            // .arg(
+            //     arg!("--wasmcov-dir -d")
+            //         .help("Specify the version of LLVM to use")
+            //         .default_value(None)
+            // )
+      
         )
         .subcommand(
             command!("post-build")
@@ -50,9 +46,7 @@ fn main() {
         ("setup", args) => {
             let result = setup(args.get_one::<PathBuf>("wasmcov-dir"));
             // If show-env is used, print the environment variables to be used in eval block
-            if args.contains_id("show-env") {
-                println!("{}", result.unwrap());
-            }
+            println!("{}", result.unwrap());
         }
         ("finalize", _) => {
             finalize();

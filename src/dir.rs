@@ -14,12 +14,7 @@ pub fn set_wasmcov_dir(wasmcov_dir: Option<&PathBuf>) -> Result<String> {
     let coverage_directory = wasmcov_dir.unwrap_or(default_directory);
 
     // Set the directory that wasm-cov will store coverage data in.
-    println!("Setting WASMCOV_DIR={}", coverage_directory.display());
     env::set_var("WASMCOV_DIR", coverage_directory);
-    println!(
-        "Setting CARGO_TARGET_DIR={}",
-        coverage_directory.join("target").display()
-    );
     env::set_var("CARGO_TARGET_DIR", coverage_directory.join("target"));
 
     // Create the coverage directory if it does not exist.
