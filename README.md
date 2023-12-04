@@ -80,10 +80,10 @@ eval $(cargo wasmcov setup)
 # Your build command
 cargo build -p contract --target wasm32-unknown-unknown
 
-# Locate compiled wasm files to your preferred directory using:
-cargo wasmcov post_build
 
-make external_tests
+# Set up and run your tests
+cargo wasmcov post_build # Find the compiled .wasm files
+make external_tests # Run your external tests
 
 cargo wasmcov finalize
 ```
