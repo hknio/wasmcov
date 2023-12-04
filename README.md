@@ -22,7 +22,7 @@ cargo install wasmcov
 
 To incorporate code coverage instrumentation into your WASM binary, utilize the `capture_coverage` utility. This functionality streamlines LLVM instrumentation coverage for Rust projects. Here’s a step-by-step guide:
 
-### Integrate the following function into your code:
+### Integrate the following function into your code generation pipeline
 
 ```rust
 #[no_mangle]
@@ -32,8 +32,6 @@ unsafe extern "C" fn generate_coverage() {
     // Invoke a function (e.g., `your_custom_save_coverage_function`) to preserve the coverage data or utilize `println!` for debugging.
 }
 ```
-
-### Automate coverage data generation
 
 Automating coverage data generation post-execution is critical. Manually inserting calls to `generate_coverage` for each function is impractical. Implementation can vary depending on your platform and might pose challenges when execution encounters failures, such as panics.
 
