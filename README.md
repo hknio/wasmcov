@@ -69,7 +69,9 @@ let result = manager
     .await?
     .into_result()?;
 
-wasmcov::near::near_coverage(&result.logs());
+// Extract the coverage data from the last log
+let coverage: Vec<u8> = near_sdk::base64::decode(&result.logs().last().unwrap()).unwrap();
+wasmcov::write_profraw(coverage);
 ```
 
 ## Usage (binary)
