@@ -55,7 +55,7 @@ unsafe {
 };
 let base64_string = near_sdk::base64::encode(coverage);
 
-::near_sdk::env::log_str(&base64_string);
+near_sdk::env::log_str(&base64_string);
 ```
 
 Then, after a function call, retrieve it using `wasmcov::near::near_coverage()`:
