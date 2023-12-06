@@ -1,6 +1,6 @@
 # Site settings
 title: Wasmcov
-description: A Rust library designed to solve the long-lasting problem of measuring code coverage in WebAssembly modules.
+description: Automated coverage analysis of WASM executables on embedded, blockchain, and other constrained environments.
 
 # Theme settings
 theme: jekyll-theme-cayman
