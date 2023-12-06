@@ -43,7 +43,7 @@ Run the sandbox:
 In your tests, you need to connect NEAR Workspaces to the custom test sandbox. Replace the standard `near_workspaces::sandbox().await?` code with the following:
 
 ```rust
-use wasmcov::{get_wasmcov_dir};
+use wasmcov::dir::get_wasmcov_dir;
 
 ...
 let worker = near_workspaces::sandbox()
@@ -57,7 +57,7 @@ let worker = near_workspaces::sandbox()
 Ensure that your tests capture coverage data. You can extract coverage information from the last log, which contains data on every function call, and write it to a `.profraw` file. Use the following code snippet:
 
 ```rust
-use wasmcov::{near_coverage};
+use wasmcov::near::near_coverage;
 
 fn main() {
     let contract: near_workspaces::Contract = near_workspaces::Contract::new();
