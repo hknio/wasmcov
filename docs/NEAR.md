@@ -2,7 +2,18 @@
 
 This guide explains how to use `wasmcov` to generate code coverage reports for NEAR Protocol smart contracts. Code coverage helps identify areas of code that are executed during testing, making it a valuable tool for ensuring the reliability and quality of your contracts.
 
-## 1. Set Up Custom NEAR Sandbox Local Network
+## 1. Build Code with Coverage Instrumentation
+
+Prepare your code for coverage analysis by building it with coverage instrumentation. Use the following commands to build your contract and generate the necessary files:
+
+```bash
+eval $(cargo wasmcov setup) // Sets up the CARGO_TARGET_DIR and WASMCOV_DIR environment variables
+
+# Your build command
+cargo build -p contract --target wasm32-unknown-unknown
+```
+
+## 2. Set Up Custom NEAR Sandbox Local Network
 
 Before running tests with coverage, you need to set up a custom NEAR Protocol sandbox with modified parameters to allow for higher gas limits. Use the following commands. You can find the `neard` precompiled binary [in this repo](https://github.com/hknio/wasmcov/tree/main/bin) or [compile it yourself](https://github.com/hknio/wasmcov-nearcore/tree/1.36.0).
 
@@ -18,7 +29,7 @@ Run the sandbox:
 ./neard --home $WASMCOV_DIR/bin/.near run
 ```
 
-## 2. Connect NEAR Workspaces to the Custom Sandbox
+## 3. Connect NEAR Workspaces to the Custom Sandbox
 
 In your tests, you need to connect NEAR Workspaces to the custom test sandbox. Replace the standard `near_workspaces::sandbox().await?` code with the following:
 
@@ -32,7 +43,7 @@ let worker = near_workspaces::sandbox()
     .await?;
 ```
 
-## 3. Patch NEAR-SDK to Modified near_bindgen Version
+## 4. Patch NEAR-SDK to Modified near_bindgen Version
 
 To work with coverage, you need to patch the NEAR-SDK with a modified `near_bindgen`. Add the following section to your `.cargo/config` file:
 
@@ -41,7 +52,7 @@ To work with coverage, you need to patch the NEAR-SDK with a modified `near_bind
 near-sdk = { git = "https://github.com/hknio/near-sdk-rs", rev = "468b5e585dc0ce0cee3d56f446c4a6054fb08f00" }
 ```
 
-## 4. Collect Coverage Data in Tests
+## 5. Collect Coverage Data in Tests
 
 Ensure that your tests capture coverage data. You can extract coverage information from the last log, which contains data on every function call, and write it to a `.profraw` file. Use the following code snippet:
 
@@ -56,22 +67,11 @@ fn main() {
 }
 ```
 
-## 5. Build Code with Coverage Instrumentation
-
-Prepare your code for coverage analysis by building it with coverage instrumentation. Use the following commands to build your contract and generate the necessary files:
-
-```bash
-eval $(cargo wasmcov setup)
-
-# Your build command
-cargo build -p contract --target wasm32-unknown-unknown
-```
-
-## 7. Run External Tests Using the Compiled Contract
+## 6. Run External Tests Using the Compiled Contract
 
 You will be able to find the compiled `.wasm` files in the `wasmcov` directory using `cargo post_build`. Copy these files to your intended location and run your external tests.
 
-## 8. Merge Coverage Data and Generate the Report
+## 7. Merge Coverage Data and Generate the Report
 
 After running the tests, you need to merge the coverage data from the `.profraw` files and generate a code coverage report. Use the following commands:
 
