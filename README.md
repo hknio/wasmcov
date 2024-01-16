@@ -116,9 +116,11 @@ wasmcov::finalize();
 
 This repository is distributed under the terms of the Apache License (Version 2.0). Refer to [LICENSE](LICENSE) for details.
 
+When using the Wasmcov workaround (llvm-ir to .o file for linking) on its own, an attribution is required.
+
 ## Maintainer
 
-This repository is currently managed by [Noah Jelich](https://www.linkedin.com/in/njelich/) from [Hacken](https://hacken.io/). Please don't hesitate to reach out for any queries or concerns.
+This repository is currently managed by [Noah Jelich](https://www.linkedin.com/in/njelich/) from [Hacken](https://hacken.io/), while the method was co-created with [Bartosz Barwikowski](https://www.linkedin.com/in/bbarwik/). Please don't hesitate to reach out for any queries or concerns.
 
 ## Contributing
 
