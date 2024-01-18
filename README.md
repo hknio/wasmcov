@@ -2,6 +2,8 @@
 
 Wasmcov comprises a Rust library and an associated binary that offer a range of utilities for coverage analysis of WebAssembly (Wasm) modules. This tool empowers you to gather and scrutinize code coverage data while executing Wasm modules. Wasmcov stands out for its adaptability and seamless integration into your Wasm projects, serving as a potent instrument to elevate the standard of your Wasm applications.
 
+If you would like to apply this method to non-Rust WASM binaries, see our [General guide](https://hknio.github.io/wasmcov/docs/General).
+
 ## Installation
 
 Include `wasmcov` as a dependency in your `Cargo.toml` file. Tailor feature flags according to your environment:
