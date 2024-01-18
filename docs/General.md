@@ -1,6 +1,6 @@
 # Code Coverage for WebAssembly
 
-This is a general overview of the WasmCov WebAssembly coverage generation method. In 2023, generating WASM coverage reports using LLVM-COV wasn't possible for projects using the WebAssembly VM. This document aims to guide projects using the WebAssembly VM in implementing code coverage functionality.
+This is a general overview of the WasmCov WebAssembly coverage generation method used by [Wasmcov](https://hknio.github.io/wasmcov). In 2023, generating WASM coverage reports using LLVM-COV wasn't possible for projects using the WebAssembly VM. This document aims to guide projects using the WebAssembly VM in implementing code coverage functionality.
 
 ## Step 1: Add Coverage Instrumentation To Your WasmCov Binary
 
