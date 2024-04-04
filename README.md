@@ -122,7 +122,7 @@ When using the Wasmcov workaround (llvm-ir to .o file for linking) on its own, a
 
 ## Maintainer
 
-This repository is currently managed by [Noah Jelich](https://www.linkedin.com/in/njelich/) from [Hacken](https://hacken.io/), while the method was co-created with [Bartosz Barwikowski](https://www.linkedin.com/in/bbarwik/). Please don't hesitate to reach out for any queries or concerns.
+This repository is currently managed by [Bartosz Barwikowski](https://www.linkedin.com/in/bbarwik/) from [Hacken](https://hacken.io/). It was originally created by [Noah Jelich](https://www.linkedin.com/in/njelich/), while the method itself was co-created with Bartosz. Please don't hesitate to reach out for any queries or concerns.
 
 ## Contributing
 
