@@ -86,7 +86,7 @@ cargo build -p contract --target wasm32-unknown-unknown
 
 
 # Set up and run your tests
-cargo wasmcov post_build # Find the compiled .wasm files
+cargo wasmcov post-build # Find the compiled .wasm files
 make external_tests # Run your external tests
 
 cargo wasmcov finalize
