@@ -1,8 +1,8 @@
 [package]
 name = "wasmcov"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-authors = ["Noah Jelich <n.jelich@hacken.io>", "Bartosz Barwikowski <b.barwikowski@hacken.io>"]
+authors = ["Bartosz Barwikowski <b.barwikowski@hacken.io>", "Noah Jelich <n.jelich@hacken.io>"]
 description = "A set of helpers for coverage of wasm modules"
 
 license = "Apache-2.0"
@@ -11,11 +11,10 @@ readme ="README.md"
 documentation = "https://hknio.github.io/wasmcov/"
 repository = "https://github.com/hknio/wasmcov"
 
-keywords = ["crypto", "wasm", "blockchain", "testing", "profiling"]
+keywords = ["crypto", "wasm", "blockchain", "testing", "profiling", "webassembly"]
 categories = ["development-tools", "embedded", "wasm", "command-line-utilities", "cryptography::cryptocurrencies"]
 
 exclude = [
-    "bin/*",
     "docs/*",
 ]
 
@@ -25,20 +24,23 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "cargo-wasmcov"
-path = "src/bin.rs"
+path = "src/bin/wasmcov.rs"
 
-[dependencies]
-uuid = { version = "1.5.0", features = ["v4"] }
-regex = { version = "1.5.5" }
-near-sdk = { version = "4.1.1", optional = true }
-anyhow = { version = "1.0.75" }
-clap = { version = "4.4.8", features = ["cargo"] }
+[target.'cfg(target_family = "wasm")'.dependencies]
+minicov = { git = "https://github.com/bbarwikowski-hacken/minicov" }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+regex = { version = "1.7.1" }
+anyhow = { version = "1.0.62" }
+clap = { version = "4.2", features = ["cargo", "derive"] }
 glob = { version = "0.3.1" }
-minicov = "0.3"
 
-[dev-dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 tempfile = "3.8.1"
 
 [features]
-near = ["dep:near-sdk"]
+default = ["near_sandbox"]
+near_sandbox = []
 
+[dependencies]
+serde_json = "1.0.117"

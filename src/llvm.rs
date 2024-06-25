@@ -1,11 +1,19 @@
+use crate::utils::run_command;
 use anyhow::{anyhow, Result};
 use regex::Regex;
-use std::process::Command;
+use std::sync::Once;
 
-use crate::run_command;
+static LLVM_TOOLING: Once = Once::new();
+static mut LLVM_TOOLING_RESULT: Option<LlvmToolingResult> = None;
+pub fn get_tooling() -> Result<&'static LlvmToolingResult> {
+    LLVM_TOOLING.call_once(|| unsafe {
+        LLVM_TOOLING_RESULT = Some(find_tooling().expect("Failed to initialize LLVM tooling"));
+    });
+    unsafe { Ok(LLVM_TOOLING_RESULT.as_ref().unwrap()) }
+}
 
-pub(crate) fn check_rustc_version() -> Result<(bool, String)> {
-    let output_str = run_command("rustc", &["--version", "--verbose"])?;
+pub fn check_rustc_version() -> Result<(bool, String)> {
+    let output_str = run_command("rustc", &["--version", "--verbose"], None)?;
     let is_nightly = output_str.contains("nightly");
     let llvm_major_version = Regex::new(r"LLVM version: (\d+)")
         .unwrap()
@@ -16,53 +24,61 @@ pub(crate) fn check_rustc_version() -> Result<(bool, String)> {
     Ok((is_nightly, llvm_major_version))
 }
 
-fn check_wasm_target(nightly: bool) -> Result<()> {
-    let output_str = run_command("rustup", &["target", "list", "--installed"])?;
-    let is_wasm_target_installed = output_str.contains("wasm32-unknown-unknown");
+pub fn check_llvm_tool_version(command: &str) -> Result<String> {
+    let output = run_command(&command, &["--version"], None)?;
+    let llvm_major_version = Regex::new(r"version (\d+)")
+        .unwrap()
+        .captures(&output)
+        .and_then(|cap| cap.get(1).map(|m| m.as_str()))
+        .map(String::from)
+        .ok_or(anyhow!("Failed to parse {command} output:\n{output}"))?;
+    Ok(llvm_major_version)
+}
 
-    if !is_wasm_target_installed {
-        let nightly_str = if nightly { "nightly " } else { "" };
-        let toolchain_str = if nightly { " --toolchain=nightly" } else { "" };
-        Err(anyhow!(
-            "The {}wasm32-unknown-unknown target is not installed.\nYou can install it by using the following command:\nrustup target add wasm32-unknown-unknown{}",
-            nightly_str,
-            toolchain_str
-        ))
+pub fn find_llvm_tool(tool: &str, major_version: &str) -> Result<String> {
+    let version = check_llvm_tool_version(&format!("{tool}-{major_version}"));
+    if version.is_err() {
+        let version = check_llvm_tool_version(&tool);
+        if version.is_err() {
+            return Err(anyhow!("Failed to find {tool}-{major_version}"));
+        }
+        let version = version.unwrap();
+        if version != major_version {
+            Err(anyhow!(
+                "Found {tool} version {version}, but expected {major_version}"
+            ))
+        } else {
+            Ok(tool.to_string())
+        }
     } else {
-        Ok(())
+        Ok(format!("{tool}-{major_version}"))
     }
 }
 
-fn check_command_availability(command: String) -> Result<()> {
-    if Command::new(&command).arg("--version").output().is_err() {
-        let llvm_version = command.split('-').last().unwrap_or("Unknown");
-        Err(anyhow!("Missing command: {}. Please install LLVM version matching rustc LLVM version, which is {}.\nFor more information, check https://apt.llvm.org/", 
-              command, llvm_version))
-    } else {
-        Ok(())
-    }
-}
-
-pub struct VerifyToolingResult {
-    pub is_nightly: bool,
+pub struct LlvmToolingResult {
+    pub rustc_is_nightly: bool,
     pub llvm_major_version: String,
+    pub clang: String,
+    pub llvm_cov: String,
+    pub llvm_profdata: String,
 }
 
-pub fn verify_tooling() -> Result<VerifyToolingResult> {
-    let (is_nightly, llvm_major_version) = check_rustc_version()?;
+pub fn find_tooling() -> Result<LlvmToolingResult> {
+    let (rustc_is_nightly, llvm_major_version) = check_rustc_version()?;
+    let clang = find_llvm_tool("clang", &llvm_major_version)?;
+    let llvm_cov = find_llvm_tool("llvm-cov", &llvm_major_version)?;
+    let llvm_profdata = find_llvm_tool("llvm-profdata", &llvm_major_version)?;
 
-    check_wasm_target(is_nightly)?;
-
-    check_command_availability(format!("clang-{}", &llvm_major_version))?;
-    check_command_availability(format!("llvm-cov-{}", &llvm_major_version))?;
-    check_command_availability(format!("llvm-profdata-{}", &llvm_major_version))?;
-
-    Ok(VerifyToolingResult {
-        is_nightly,
+    Ok(LlvmToolingResult {
+        rustc_is_nightly,
         llvm_major_version,
+        clang,
+        llvm_cov,
+        llvm_profdata,
     })
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -125,3 +141,4 @@ mod tests {
         let verify_tooling_result = result.unwrap();
     }
 }
+ */

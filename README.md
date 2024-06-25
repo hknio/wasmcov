@@ -6,113 +6,103 @@ If you would like to apply this method to non-Rust WASM binaries, see our [Gener
 
 ## Installation
 
-Include `wasmcov` as a dependency in your `Cargo.toml` file. Tailor feature flags according to your environment:
-
-```toml
-[dependencies.wasmcov]
-version = "0.1"
-features = ["near"]
-```
-
-Alternatively, install the binary directly using `cargo install`:
+Install the `cargo-wasmcov` command by running:
 
 ```bash
 cargo install wasmcov
 ```
 
-## Coverage Data Generation
+## Usage
 
-To incorporate code coverage instrumentation into your WASM binary, utilize the `capture_coverage` utility. This functionality streamlines LLVM instrumentation coverage for Rust projects. Here’s a step-by-step guide:
+`cargo-wasmcov` provides several subcommands to build, run, test, and generate coverage reports for your WASM projects.
 
-### Integrate the following function into your code generation pipeline
+### Integrating Coverage Capture
 
-```rust
-#[no_mangle]
-unsafe extern "C" fn generate_coverage() {
-    let mut coverage = vec![];
-    wasmcov::capture_coverage(&mut coverage).unwrap();
-    // Invoke a function (e.g., `your_custom_save_coverage_function`) to preserve the coverage data or utilize `println!` for debugging.
-}
-```
+Before using `cargo-wasmcov`, you need to integrate the coverage capture function into your WebAssembly project:
 
-Automating coverage data generation post-execution is critical. Manually inserting calls to `generate_coverage` for each function is impractical. Implementation can vary depending on your platform and might pose challenges when execution encounters failures, such as panics.
+1. Add `wasmcov` as a dependency in your `Cargo.toml`:
+   ```toml
+   wasmcov = "0.2"
+   ```
 
-For instance, modify the function responsible for invoking WASM functions to call `generate_coverage` after each function call. Ensure this modification remains platform-independent.
+2. Add the following function to your WebAssembly project:
 
-Find examples of such implementations for different platforms [here](https://github.com/hknio/wasmcov-near-sdk-rs/compare/hknio:wasmcov-near-sdk-rs:55020df8e99057815685b75b70955cb79a9dfe28...wasmcov) and [here](https://github.com/radixdlt/radixdlt-scrypto/pull/1640/files).
+   ```rust
+   #[cfg(target_family = "wasm")]
+   #[no_mangle]
+   pub unsafe extern "C" fn capture_coverage() {
+       const BINARY_NAME: &str = env!("CARGO_PKG_NAME");
+       let mut coverage = vec![];
+       wasmcov::minicov::capture_coverage(&mut coverage).unwrap();
+       // Invoke a function to preserve the coverage data or use `println!` for debugging.
+   }
+   ```
 
-### Managing coverage data in tests
+   For NEAR Protocol projects, use this macro in `lib.rs` of your smart contract:
 
-After extracting the coverage data (via logs, storage, file writes, etc.), invoke `wasmcov::write_profraw(coverage_data)` to save it to a `.profraw` file. This file becomes the basis for generating a `.profdata` file.
+   ```rust
+   #[cfg(target_family = "wasm")]
+   wasmcov::near::add_coverage!();
+   ```
 
-**Once the coverage data reaches `wasmcov::write_profraw`, the library handles the rest automatically.**
+### Build
 
-An example flow was implemented for the NEAR protocol, passing coverage data through logs:
-
-```rust
-let mut coverage = vec![];
-unsafe {
-    // Note: This function isn't thread-safe! Employ a lock if necessary.
-    wasmcov::capture_coverage(&mut coverage).unwrap();
-};
-let base64_string = near_sdk::base64::encode(coverage);
-
-near_sdk::env::log_str(&base64_string);
-```
-
-Then, after a function call, retrieve it using `wasmcov::near::near_coverage()`:
-
-```rust
-let result = manager
-    .call(self.id(),"function_name")
-    .args_json(args)
-    .deposit(1)
-    .transact()
-    .await?
-    .into_result()?;
-
-// Extract the coverage data from the last log
-let coverage: Vec<u8> = near_sdk::base64::decode(&result.logs().last().unwrap()).unwrap();
-wasmcov::write_profraw(coverage);
-```
-
-## Usage (binary)
+Build your project with WASM coverage instrumentation:
 
 ```bash
-eval $(cargo wasmcov setup)
-
-# Your build command
-cargo build -p contract --target wasm32-unknown-unknown
-
-
-# Set up and run your tests
-cargo wasmcov post_build # Find the compiled .wasm files
-make external_tests # Run your external tests
-
-cargo wasmcov finalize
+cargo wasmcov build [-- <additional cargo arguments>]
 ```
 
-## Usage (library)
-
-In Rust code, Wasmcov is invoked in the following sequence:
-
-```rust
-wasmcov::setup(None); // Or specify the path to the wasmcov directory
-
-// Execute your build command here (it utilizes the environment setup created by wasmcov::setup)
-wasmcov::run_command("cargo build -p contract --target wasm32-unknown-unknown");
-
-// Set up and run your tests
-// Obtain compiled wasm file paths via wasmcov::post_build() > Vec<PathBuf> function
-let wasm_file_paths = wasmcov::post_build();
-// Copy these files to your intended location
-std::fs::copy(wasm_file_paths[0], "your_new_path.wasm").unwrap(); // and so on
-// Run your tests
-wasmcov::run_command("your external test command");
-
-// Perform coverage analysis
-wasmcov::finalize();
+Example:
+```bash
+cargo wasmcov build -- --all --target wasm32-unknown-unknown --release
 ```
+
+### Run
+
+Run your project with WASM coverage:
+
+```bash
+cargo wasmcov run [--near <VERSION>] [-- <additional cargo arguments>]
+```
+
+The `--near` option allows you to specify a NEAR sandbox version (e.g., 1.35.0) if needed. It is required for near projects.
+
+### Test
+
+Run tests with WASM coverage:
+
+```bash
+cargo wasmcov test [--near <VERSION>] [-- <additional cargo arguments>]
+```
+
+The `--near` option allows you to specify a NEAR sandbox version (e.g., 1.35.0) if needed. It is required for near projects.
+
+### Generate Coverage Report
+
+Generate a coverage report:
+
+```bash
+cargo wasmcov report [-- <additional llvm-cov arguments>]
+```
+
+This command will process all collected coverage data and generate reports for each target.
+
+### Clean
+
+Clean coverage data:
+
+```bash
+cargo wasmcov clean [--all]
+```
+
+Use the `--all` flag to remove the entire wasmcov directory content.
+
+## Notes
+
+- The tool uses the nightly Rust toolchain for building and running.
+- Coverage reports are generated using LLVM coverage tools.
+- For NEAR-specific projects, you must specify the NEAR sandbox version using the `--near` option with the `run` and `test` subcommands.
 
 ## License
 
