@@ -15,6 +15,7 @@ keywords = ["crypto", "wasm", "blockchain", "testing", "profiling", "webassembly
 categories = ["development-tools", "embedded", "wasm", "command-line-utilities", "cryptography::cryptocurrencies"]
 
 exclude = [
+    ".devcontainer",
     "docs/*",
 ]
 
