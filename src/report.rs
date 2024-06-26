@@ -1,7 +1,7 @@
 use crate::llvm;
-use crate::utils::{run_command};
+use crate::utils::run_command;
 
-use anyhow::{Result};
+use anyhow::Result;
 
 use glob::glob;
 use std::path::PathBuf;

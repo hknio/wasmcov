@@ -4,9 +4,9 @@ use anyhow::anyhow;
 use anyhow::Result;
 use glob::glob;
 use regex::Regex;
-use std::fs::{File};
+use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 pub fn get_build_flags() -> Vec<&'static str> {
     vec![
@@ -74,6 +74,7 @@ pub fn compile_ll_file(ll_file: &PathBuf, obj_file: &PathBuf) -> Result<()> {
     run_command(
         &llvm::get_tooling()?.clang,
         &[
+            "--target=x86_64-unknown-linux-gnu",
             "-Wno-override-module",
             "-c",
             "-o",

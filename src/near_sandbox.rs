@@ -33,6 +33,26 @@ pub fn modify_near_vm_runner(file_path: PathBuf) -> std::io::Result<()> {
     modify_file(file_path, operation)
 }
 
+pub fn modify_wasmtime_runner(file_path: PathBuf) -> std::io::Result<()> {
+    let operation =
+        FileOperation::ReplaceText {
+            pattern: String::from("Ok(run) => match run.call(&mut store, ()) {"),
+            replacement: String::from(
+                "Ok(run) => match (|| {
+                    let result = run.call(&mut store, ());
+                    if std::env::var(\"WASMCOV_DIR\").is_ok() {
+                        if let Some(func) = instance.get_func(&mut store, \"capture_coverage\") {
+                            if let Some(run) = func.typed::<(), ()>(&mut store).ok() {
+                                run.call(&mut store, ()).expect(\"capture_coverage function should not fail\");
+                            }
+                        }
+                    }
+                    result
+                })() {"),
+        };
+    modify_file(file_path, operation)
+}
+
 pub fn modify_imports(file_path: PathBuf) -> std::io::Result<()> {
     let operation = FileOperation::AddAfter {
             pattern: String::from("sandbox_debug_log<[len: u64, ptr: u64]"),
@@ -89,6 +109,11 @@ pub fn add_wasmcov_to_nearcore(nearcore_dir: &PathBuf) -> Result<()> {
 
     let imports_path = find_file(&nearcore_dir, &["runtime/near-vm-runner/src/imports.rs"])
         .map_err(|_| anyhow!("Could not find imports.rs"))?;
+    let wasmtime_runner_path = find_file(
+        &nearcore_dir,
+        &["runtime/near-vm-runner/src/wasmtime_runner.rs"],
+    )
+    .map_err(|_| anyhow!("Could not find wasmtime_runner.rs"))?;
 
     let logic_path = find_file(
         &nearcore_dir,
@@ -104,6 +129,8 @@ pub fn add_wasmcov_to_nearcore(nearcore_dir: &PathBuf) -> Result<()> {
         .map_err(|_| anyhow!("Failed to modify near_vm_runner.rs"))?;
     modify_imports(imports_path).map_err(|_| anyhow!("Failed to modify imports.rs"))?;
     modify_logic(logic_path).map_err(|_| anyhow!("Failed to modify logic.rs"))?;
+    modify_wasmtime_runner(wasmtime_runner_path)
+        .map_err(|_| anyhow!("Failed to modify wasmtime_runner.rs"))?;
 
     Ok(())
 }
@@ -116,8 +143,16 @@ pub fn setup_near_sandbox(dir: PathBuf, version: String) -> Result<PathBuf> {
     };
 
     let mut version_split = version.split(".");
-    let version_major = version_split.next().unwrap_or_default().parse::<u32>().unwrap_or_default();
-    let version_minor = version_split.next().unwrap_or_default().parse::<u32>().unwrap_or_default();
+    let version_major = version_split
+        .next()
+        .unwrap_or_default()
+        .parse::<u32>()
+        .unwrap_or_default();
+    let version_minor = version_split
+        .next()
+        .unwrap_or_default()
+        .parse::<u32>()
+        .unwrap_or_default();
     if version_major != 1 || version_minor < 34 {
         eprintln!(
             "Version {} is not supported. Please use version 1.34.0 or higher.",
@@ -139,20 +174,22 @@ pub fn setup_near_sandbox(dir: PathBuf, version: String) -> Result<PathBuf> {
 
     // Clone the repo
     let near_repository_dir = dir.join(&version);
-    println!("Cloning nearcore version {}", version);
-    run_command(
-        "git",
-        &[
-            "clone",
-            "--depth=1",
-            "--branch",
-            &version,
-            "https://github.com/near/nearcore",
-            near_repository_dir.to_str().unwrap(),
-        ],
-        None,
-    )?;
-    add_wasmcov_to_nearcore(&near_repository_dir)?;
+    if !near_repository_dir.exists() {
+        println!("Cloning nearcore version {}", version);
+        run_command(
+            "git",
+            &[
+                "clone",
+                "--depth=1",
+                "--branch",
+                &version,
+                "https://github.com/near/nearcore",
+                near_repository_dir.to_str().unwrap(),
+            ],
+            None,
+        )?;
+        add_wasmcov_to_nearcore(&near_repository_dir)?;
+    }
 
     // librocksdb-sys requires update because there are issues with the version in the lock file in older versions
     run_command(
@@ -160,7 +197,7 @@ pub fn setup_near_sandbox(dir: PathBuf, version: String) -> Result<PathBuf> {
         &["update", "-p", "librocksdb-sys"],
         Some(&near_repository_dir),
     )?;
-    println!("Building neard");
+    println!("Building neard, it may take a while");
     run_command(
         "cargo",
         &[
@@ -186,7 +223,8 @@ pub fn setup_near_sandbox(dir: PathBuf, version: String) -> Result<PathBuf> {
     fs::copy(&source_path, &neard_path).expect("Failed to copy neard binary");
 
     // make sure neard works
-    run_command(neard_path.to_str().unwrap(), &["--version"], None)?;
+    run_command(neard_path.to_str().unwrap(), &["--version"], None)
+        .expect(format!("Failed to run {}", neard_path.to_str().unwrap()).as_str());
 
     // remove the repo
     fs::remove_dir_all(&near_repository_dir).expect("Failed to remove near repository dir");

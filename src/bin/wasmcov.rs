@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use std::{env, fs, path::PathBuf, process::Command};
 use wasmcov::{build, dir, near_sandbox, report, utils};
@@ -60,7 +60,11 @@ enum WasmcovCommands {
     /// Clean coverage data
     Clean {
         /// Removes entire wasmcov directory content when true
-        #[arg(long, help = "Removes entire wasmcov directory content when true", default_value = "false")]
+        #[arg(
+            long,
+            help = "Removes entire wasmcov directory content when true",
+            default_value = "false"
+        )]
         all: bool,
     },
 }
@@ -70,11 +74,13 @@ fn main() -> Result<()> {
     let cli = if args.len() > 1 && args[1] == "wasmcov" {
         Cli::parse()
     } else {
-        Cli { command: Commands::Wasmcov(WasmcovArgs::parse()) }
+        Cli {
+            command: Commands::Wasmcov(WasmcovArgs::parse()),
+        }
     };
 
     match cli.command {
-        Commands::Wasmcov(args) => handle_wasmcov(args)
+        Commands::Wasmcov(args) => handle_wasmcov(args),
     }
 }
 
@@ -157,7 +163,10 @@ fn clean_command(all: bool) -> Result<()> {
 }
 
 fn set_env_vars() {
-    env::set_var("CARGO_ENCODED_RUSTFLAGS", build::get_build_flags().join("\x1f"));
+    env::set_var(
+        "CARGO_ENCODED_RUSTFLAGS",
+        build::get_build_flags().join("\x1f"),
+    );
     env::set_var("RUSTUP_TOOLCHAIN", "nightly");
 }
 
@@ -171,7 +180,10 @@ fn execute_command(command: &str, subcommand: &str, args: &[String]) -> String {
         .expect("Failed to wait on child");
 
     if !output.status.success() {
-        eprintln!("Command `{}` failed with status: {}", subcommand, output.status);
+        eprintln!(
+            "Command `{}` failed with status: {}",
+            subcommand, output.status
+        );
         std::process::exit(output.status.code().unwrap_or(1));
     }
     String::from_utf8(output.stdout).expect("Failed to read command output")
@@ -200,9 +212,7 @@ fn build_test_binaries(mut cargo_args: Vec<String>) -> Result<Vec<String>> {
 fn parse_cargo_output(command: &str, extra_args: &[String]) -> Result<Vec<String>> {
     let mut args = vec![command, "--message-format=json"];
     args.extend(extra_args.iter().map(String::as_str));
-    let output = Command::new("cargo")
-        .args(&args)
-        .output()?;
+    let output = Command::new("cargo").args(&args).output()?;
 
     if !output.status.success() {
         return Err(anyhow!("Failed to build {} binaries", command));
@@ -213,7 +223,9 @@ fn parse_cargo_output(command: &str, extra_args: &[String]) -> Result<Vec<String
         .lines()
         .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
         .filter_map(|json| {
-            if json["reason"] == "compiler-artifact" && json["profile"]["test"] == (command == "test") {
+            if json["reason"] == "compiler-artifact"
+                && json["profile"]["test"] == (command == "test")
+            {
                 json["executable"].as_str().map(String::from)
             } else {
                 None
@@ -247,7 +259,7 @@ fn process_wasm_files(target_dir: &PathBuf) -> Result<()> {
 
                 let wasm_file_target = target_dir.join(wasm_file.file_name().unwrap());
                 fs::copy(&wasm_file, &wasm_file_target)?;
-            },
+            }
             Err(_) => {
                 eprintln!("Warning: LL file not found for {:?}", wasm_file);
             }
@@ -262,7 +274,7 @@ fn split_args(args: Vec<String>) -> (Vec<String>, Vec<String>) {
         Some(index) => {
             let (cargo_args, binary_args) = args.split_at(index);
             (cargo_args.to_vec(), binary_args[1..].to_vec())
-        },
+        }
         None => (args, Vec::new()),
     }
 }

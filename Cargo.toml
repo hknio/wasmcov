@@ -25,22 +25,21 @@ path = "src/lib.rs"
 [[bin]]
 name = "cargo-wasmcov"
 path = "src/bin/wasmcov.rs"
+required-features = ["near_sandbox"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-minicov = { git = "https://github.com/bbarwikowski-hacken/minicov" }
+minicov = "0.3.5"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-regex = { version = "1.7.1" }
-anyhow = { version = "1.0.62" }
+regex = "1.10.5"
+anyhow = "1.0.86"
 clap = { version = "4.2", features = ["cargo", "derive"] }
-glob = { version = "0.3.1" }
+glob = "0.3.1"
+serde_json = "1.0.118"
 
 [target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
-tempfile = "3.8.1"
+tempfile = "3.10.1"
 
 [features]
 default = ["near_sandbox"]
 near_sandbox = []
-
-[dependencies]
-serde_json = "1.0.117"
