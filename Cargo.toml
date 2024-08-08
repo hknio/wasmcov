@@ -1,6 +1,6 @@
 [package]
 name = "wasmcov"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Bartosz Barwikowski <b.barwikowski@hacken.io>", "Noah Jelich <n.jelich@hacken.io>"]
 description = "A set of helpers for coverage of wasm modules"
@@ -11,7 +11,7 @@ readme ="README.md"
 documentation = "https://hknio.github.io/wasmcov/"
 repository = "https://github.com/hknio/wasmcov"
 
-keywords = ["crypto", "wasm", "blockchain", "testing", "profiling", "webassembly"]
+keywords = ["crypto", "wasm", "blockchain", "testing", "profiling"]
 categories = ["development-tools", "embedded", "wasm", "command-line-utilities", "cryptography::cryptocurrencies"]
 
 exclude = [

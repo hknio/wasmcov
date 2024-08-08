@@ -6,7 +6,7 @@ use anyhow::Result;
 use glob::glob;
 use std::path::PathBuf;
 
-pub fn merge_profraw_to_profdata(profraw_dir: &PathBuf, profdata_path: &PathBuf) -> Result<()> {
+pub fn merge_profraw_to_profdata(profraw_dir: &PathBuf, profdata_path: &PathBuf, extra_args: Vec<String>) -> Result<()> {
     // find all .profraw files in the profraw directory
     let profraw_files: Vec<String> = glob(profraw_dir.join("*.profraw").to_str().unwrap())?
         .filter_map(|entry| entry.ok())
@@ -20,6 +20,7 @@ pub fn merge_profraw_to_profdata(profraw_dir: &PathBuf, profdata_path: &PathBuf)
         "-o".to_string(),
         profdata_path.to_str().unwrap().to_string(),
     ];
+    args.extend(extra_args);
     args.extend(profraw_files);
 
     // Run the command

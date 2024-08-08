@@ -12,6 +12,7 @@ pub fn get_build_flags() -> Vec<&'static str> {
     vec![
         "--emit=llvm-ir",
         "-Cinstrument-coverage",
+        "-Clto=off",
         "-Zlocation-detail=none",
         "-Zno-profiler-runtime",
     ]

@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use std::{env, fs, path::PathBuf, process::Command};
-use wasmcov::{build, dir, near_sandbox, report, utils};
+use wasmcov::{build, dir, llvm, near_sandbox, report, utils};
 
 #[derive(Parser)]
 #[command(name = "cargo", bin_name = "cargo")]
@@ -21,7 +21,7 @@ struct WasmcovArgs {
     command: WasmcovCommands,
 
     /// Sets the wasmcov directory
-    #[arg(long, global = true, help = "Sets the wasmcov directory")]
+    #[arg(long, global = true, help = "Sets the wasmcov directory (can be also set by WASMCOV_DIR env var)")]
     wasmcov_dir: Option<PathBuf>,
 }
 
@@ -50,6 +50,12 @@ enum WasmcovCommands {
         /// Additional cargo arguments
         #[arg(last = true)]
         cargo_args: Vec<String>,
+    },
+    /// Merge profraw into profdata by running llvm-profdata merge
+    Merge {
+        //. Additional llvm-profdata arguments
+        #[arg(last = true)]
+        llvm_profdata_args: Vec<String>,
     },
     /// Generate coverage report
     Report {
@@ -91,6 +97,7 @@ fn handle_wasmcov(args: WasmcovArgs) -> Result<()> {
         WasmcovCommands::Build { cargo_args } => build_command(cargo_args),
         WasmcovCommands::Run { near, cargo_args } => run_or_test_command("run", near, cargo_args),
         WasmcovCommands::Test { near, cargo_args } => run_or_test_command("test", near, cargo_args),
+        WasmcovCommands::Merge { llvm_profdata_args } => merge_command(llvm_profdata_args),
         WasmcovCommands::Report { llvm_cov_args } => report_command(llvm_cov_args),
         WasmcovCommands::Clean { all } => clean_command(all),
     }
@@ -113,18 +120,16 @@ fn run_or_test_command(command: &str, near: Option<String>, cargo_args: Vec<Stri
     };
 
     let target_dir = prepare_target_directory()?;
+    set_env_vars();
     for binary in executables {
         println!("Running binary: {}", binary);
-        set_env_vars();
         execute_command(&binary, "", &binary_args);
     }
     process_wasm_files(&target_dir)
 }
 
-fn report_command(llvm_cov_args: Vec<String>) -> Result<()> {
+fn merge_command(llvm_profdata_args: Vec<String>) -> Result<()> {
     let profdata_dir = dir::get_profdata_dir();
-    let target_dir = dir::get_target_dir();
-
     for entry in fs::read_dir(dir::get_profraw_dir())? {
         let dir_path = entry?.path();
         if !dir_path.is_dir() || fs::read_dir(&dir_path)?.next().is_none() {
@@ -132,27 +137,48 @@ fn report_command(llvm_cov_args: Vec<String>) -> Result<()> {
         }
 
         let dir_name = dir_path.file_name().unwrap().to_str().unwrap();
-        println!("Generating coverage report for {}", dir_name);
+        println!("Merging profraw files for {}", dir_name);
+
+        let profdata_path = profdata_dir.join(format!("{}.profdata", dir_name));
+        report::merge_profraw_to_profdata(&dir_path, &profdata_path, llvm_profdata_args.clone())?;
+
+        println!("Profdata file has been saved to {:?}", profdata_path);
+    }
+    Ok(())
+}
+
+fn report_command(llvm_cov_args: Vec<String>) -> Result<()> {
+    let target_dir = dir::get_target_dir();
+
+    merge_command(Vec::new())?;
+
+    for entry in fs::read_dir(dir::get_profdata_dir())? {
+        let file_path = entry?.path();
+        if file_path.is_dir() {
+            continue;
+        }
+
+        let file_name = file_path.with_extension("");
+        let file_name = file_name.file_name().unwrap().to_str().unwrap();
+        println!("Generating coverage report for {}", file_name);
 
         let object_file = match utils::find_file(
             &target_dir,
             &[
-                &format!("{}.o", dir_name.replace("-", "_")),
-                &format!("{}.o", dir_name),
+                &format!("{}.o", file_name.replace("-", "_")),
+                &format!("{}.o", file_name),
             ],
         ) {
             Ok(file) => file,
             Err(_) => {
-                println!("Warning: Object file not found for {:?}", dir_name);
+                eprintln!("Warning: object file not found for {:?}", file_name);
+                eprintln!("Object files should be placed in the wasmcov target directory");
                 continue;
             }
         };
 
-        let profdata_path = profdata_dir.join(format!("{}.profdata", dir_name));
-        report::merge_profraw_to_profdata(&dir_path, &profdata_path)?;
-
-        let report_dir = dir::get_report_dir().join(dir_name);
-        report::generate_report(&profdata_path, &object_file, &report_dir, &llvm_cov_args)?;
+        let report_dir = dir::get_report_dir().join(file_name);
+        report::generate_report(&file_path, &object_file, &report_dir, &llvm_cov_args)?;
         println!("Coverage report has been saved to {:?}", report_dir);
     }
     Ok(())
@@ -167,7 +193,11 @@ fn set_env_vars() {
         "CARGO_ENCODED_RUSTFLAGS",
         build::get_build_flags().join("\x1f"),
     );
-    env::set_var("RUSTUP_TOOLCHAIN", "nightly");
+    let (is_nightly, _version) = llvm::check_rustc_version().expect("Failed to run rustc command");
+    if !is_nightly {
+        println!("Setting RUSTUP_TOOLCHAIN to nightly");
+        env::set_var("RUSTUP_TOOLCHAIN", "nightly");
+    }
 }
 
 fn execute_command(command: &str, subcommand: &str, args: &[String]) -> String {
