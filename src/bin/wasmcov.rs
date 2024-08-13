@@ -91,7 +91,10 @@ fn main() -> Result<()> {
 }
 
 fn handle_wasmcov(args: WasmcovArgs) -> Result<()> {
-    dir::set_wasmcov_dir(args.wasmcov_dir.as_ref());
+    let wasmcov_dir = env::var("WASMCOV_DIR").unwrap_or_default();
+    if args.wasmcov_dir.is_some() || wasmcov_dir.is_empty() {
+        dir::set_wasmcov_dir(args.wasmcov_dir.as_ref());
+    }
 
     match args.command {
         WasmcovCommands::Build { cargo_args } => build_command(cargo_args),

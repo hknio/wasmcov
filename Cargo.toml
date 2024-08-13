@@ -1,6 +1,6 @@
 [package]
 name = "wasmcov"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Bartosz Barwikowski <b.barwikowski@hacken.io>", "Noah Jelich <n.jelich@hacken.io>"]
 description = "A set of helpers for coverage of wasm modules"
